@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/dgraph-io/badger"
 	kitlog "github.com/go-kit/kit/log"
@@ -124,8 +125,14 @@ func OpenAbout(log kitlog.Logger, r repo.Interface) (AboutStore, repo.ServeFunc,
 }
 
 func updateAboutMessage(ctx context.Context, seq margaret.Seq, val interface{}, idx librarian.SetterIndex) error {
+	msg, ok := val.(message.StoredMessage)
+	if !ok {
+		if margaret.IsErrNulled(val.(error)) {
+			return nil
+		}
+		return fmt.Errorf("about(%d): wrong msgT: %T", seq, val)
+	}
 
-	msg := val.(message.StoredMessage)
 	var dmsg message.DeserializedMessage
 	err := json.Unmarshal(msg.Raw, &dmsg)
 	if err != nil {

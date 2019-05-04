@@ -68,6 +68,7 @@ var app = cli.App{
 		logStreamCmd,
 		typeStreamCmd,
 		historyStreamCmd,
+		replicateUptoCmd,
 		callCmd,
 		connectCmd,
 		queryCmd,
