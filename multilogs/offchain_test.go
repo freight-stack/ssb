@@ -2,6 +2,7 @@ package multilogs
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -18,7 +19,7 @@ import (
 	"go.cryptoscope.co/ssb/repo"
 )
 
-func TestSignMessages(t *testing.T) {
+func TestOffchainSimple(t *testing.T) {
 	tctx := context.TODO()
 	r := require.New(t)
 	a := assert.New(t)
@@ -29,6 +30,7 @@ func TestSignMessages(t *testing.T) {
 	testRepo := repo.New(rpath)
 
 	rl, err := repo.OpenLog(testRepo)
+
 	r.NoError(err, "failed to open root log")
 	seq, err := rl.Seq().Value()
 	r.NoError(err, "failed to get log seq")
@@ -48,11 +50,12 @@ func TestSignMessages(t *testing.T) {
 	staticRand := rand.New(rand.NewSource(42))
 	testAuthor, err := ssb.NewKeyPair(staticRand)
 	r.NoError(err)
+	testAuthor.Id.Offchain = true
 
 	authorLog, err := userFeeds.Get(testAuthor.Id.StoredAddr())
 	r.NoError(err)
 
-	w, err := OpenPublishLog(rl, userFeeds, *testAuthor)
+	w, err := OpenPublishLog(rl, userFeeds, *testAuthor, EnableOffchain(true))
 	r.NoError(err)
 
 	var tmsgs = []interface{}{
@@ -101,6 +104,12 @@ func TestSignMessages(t *testing.T) {
 		a.NotNil(storedMsg.Raw, "msg:%d - raw", i)
 		a.Contains(string(storedMsg.Raw), `"signature": "`)
 		a.Contains(string(storedMsg.Raw), fmt.Sprintf(`"sequence": %d`, i+1))
-		a.Nil(storedMsg.Offchain)
+		a.True(len(storedMsg.Offchain) > 0, "no content in offchain")
+
+		var checKmsg struct {
+			Content *ssb.OffchainMessageRef `json:"content"`
+		}
+		err = json.Unmarshal(storedMsg.Raw, &checKmsg)
+		a.NoError(err)
 	}
 }

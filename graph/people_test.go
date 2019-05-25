@@ -217,7 +217,7 @@ func (tc PeopleTestCase) run(mk func(t *testing.T) testStore) func(t *testing.T)
 		r.NoError(err, "failed to build graph for debugging")
 		for nick, pub := range state.peers {
 			var newKey [32]byte
-			copy(newKey[:], pub.key.Id.ID)
+			copy(newKey[:], pub.key.Id.PubKey())
 			node, ok := g.lookup[newKey]
 			r.True(ok, "did not find peer!? %s", nick)
 			cn := node.(*contactNode)

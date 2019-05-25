@@ -5,7 +5,6 @@ import (
 
 	"github.com/dgraph-io/badger"
 	"github.com/pkg/errors"
-	"go.cryptoscope.co/librarian"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/margaret/multilog"
 	"go.cryptoscope.co/ssb/message"
@@ -28,8 +27,7 @@ func OpenUserFeeds(r repo.Interface) (multilog.MultiLog, *badger.DB, repo.ServeF
 			return errors.Errorf("error casting message. got type %T", value)
 		}
 
-		authorID := msg.Author.ID
-		authorLog, err := mlog.Get(librarian.Addr(authorID))
+		authorLog, err := mlog.Get(msg.Author.StoredAddr())
 		if err != nil {
 			return errors.Wrap(err, "error opening sublog")
 		}

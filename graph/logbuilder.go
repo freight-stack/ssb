@@ -1,7 +1,6 @@
 package graph
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"math"
@@ -110,13 +109,13 @@ func (b *logBuilder) Build() (*Graph, error) {
 			return nil
 		}
 
-		if bytes.Equal(c.Author.ID, c.Content.Contact.ID) {
+		if c.Author.Equal(c.Content.Contact) {
 			// contact self?!
 			return nil
 		}
 
 		var bfrom [32]byte
-		copy(bfrom[:], c.Author.ID)
+		copy(bfrom[:], c.Author.PubKey())
 		nFrom, has := known[bfrom]
 		if !has {
 			nFrom = &contactNode{dg.NewNode(), c.Author, ""}
@@ -125,7 +124,7 @@ func (b *logBuilder) Build() (*Graph, error) {
 		}
 
 		var bto [32]byte
-		copy(bto[:], c.Content.Contact.ID)
+		copy(bto[:], c.Content.Contact.PubKey())
 		nTo, has := known[bto]
 		if !has {
 			nTo = &contactNode{dg.NewNode(), c.Content.Contact, ""}
@@ -171,7 +170,7 @@ func (b *logBuilder) Follows(from *ssb.FeedRef) (FeedSet, error) {
 	}
 
 	var fb [32]byte
-	copy(fb[:], from.ID)
+	copy(fb[:], from.PubKey())
 	nFrom, has := g.lookup[fb]
 	if !has {
 		return nil, ErrNoSuchFrom{from}

@@ -3,7 +3,10 @@ package gossip
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -29,10 +32,13 @@ func (e ErrWrongSequence) Error() string {
 
 func (h *handler) fetchAllLib(ctx context.Context, e muxrpc.Endpoint, lst []librarian.Addr) error {
 	var refs = graph.NewFeedSet(len(lst))
-	for _, addr := range lst {
-		err := refs.AddB([]byte(addr))
+	for i, addr := range lst {
+		ref, err := ssb.ParseFeedRef(string(addr))
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "fetchLib(%d) failed to parse (%q)", i, addr)
+		}
+		if err := refs.AddRef(ref); err != nil {
+			return errors.Wrapf(err, "fetchLib(%d) set add failed", i)
 		}
 	}
 	return h.fetchAll(ctx, e, refs)
@@ -81,7 +87,7 @@ func (h *handler) fetchAll(ctx context.Context, e muxrpc.Endpoint, fs graph.Feed
 
 func isIn(list []librarian.Addr, a *ssb.FeedRef) bool {
 	for _, el := range list {
-		if bytes.Compare([]byte(el), a.ID) == 0 {
+		if el == a.StoredAddr() {
 			return true
 		}
 	}
@@ -96,7 +102,7 @@ func (g *handler) fetchFeed(ctx context.Context, fr *ssb.FeedRef, edp muxrpc.End
 	default:
 	}
 	// check our latest
-	addr := librarian.Addr(fr.ID)
+	addr := fr.StoredAddr()
 	g.activeLock.Lock()
 	_, ok := g.activeFetch.Load(addr)
 	if ok {
@@ -178,57 +184,170 @@ func (g *handler) fetchFeed(ctx context.Context, fr *ssb.FeedRef, edp muxrpc.End
 		}
 	}()
 
-	source, err := edp.Source(toLong, message.RawSignedMessage{}, []string{"createHistoryStream"}, q)
+	method := muxrpc.Method{"createHistoryStream"}
+
+	source, err := edp.Source(toLong, message.RawSignedMessage{}, method, q)
 	if err != nil {
 		return errors.Wrapf(err, "fetchFeed(%s:%d) failed to create source", fr.Ref(), latestSeq)
 	}
 	// info.Log("debug", "called createHistoryStream", "qry", fmt.Sprintf("%v", q))
+	var snk luigi.Sink
+	if fr.Offchain {
+		snk = NewOffchainDrain(fr, latestSeq, latestMsg, g.RootLog, g.hmacSec)
+	} else {
+		snk = NewLegacyDrain(fr, latestSeq, latestMsg, g.RootLog, g.hmacSec)
+	}
 
-	for {
-		v, err := source.Next(toLong)
-		if luigi.IsEOS(err) {
-			break
-		} else if err != nil {
-			return errors.Wrapf(err, "fetchFeed(%s:%d): failed to drain", fr.Ref(), latestSeq)
+	err = luigi.Pump(toLong, snk, source)
+	return errors.Wrap(err, "pump with legacy drain failed")
+}
+
+func NewLegacyDrain(who *ssb.FeedRef, start margaret.Seq, lastMsg message.StoredMessage, rl margaret.Log, hmac HMACSecret) luigi.Sink {
+
+	return &legacyDrain{
+		who:       who,
+		latestSeq: start,
+		latestMsg: &lastMsg,
+		rootLog:   rl,
+		hmacSec:   hmac,
+	}
+}
+
+type legacyDrain struct {
+	who       *ssb.FeedRef // which feed is pulled
+	latestSeq margaret.Seq
+	latestMsg *message.StoredMessage
+	rootLog   margaret.Log
+	hmacSec   HMACSecret
+}
+
+func (ld *legacyDrain) Pour(ctx context.Context, v interface{}) error {
+	nextMsg, err := ld.verifyAndValidate(ctx, v)
+	if err != nil {
+		return err
+	}
+
+	_, err = ld.rootLog.Append(*nextMsg)
+	if err != nil {
+		return errors.Wrapf(err, "fetchFeed(%s): failed to append message(%s:%d)", ld.who.Ref(), nextMsg.Key.Ref(), nextMsg.Sequence)
+	}
+
+	ld.latestSeq = nextMsg.Sequence
+	ld.latestMsg = nextMsg
+	fmt.Println("poured legacyDrain", ld.latestSeq)
+	return nil
+}
+
+func (ld *legacyDrain) verifyAndValidate(ctx context.Context, v interface{}) (*message.StoredMessage, error) {
+	rmsg, ok := v.(message.RawSignedMessage)
+	if !ok {
+		return nil, errors.Errorf("b4pour: expected %T - got %T", rmsg, v)
+	}
+	ref, dmsg, err := message.Verify(rmsg.RawMessage, ld.hmacSec)
+	if err != nil {
+		return nil, errors.Wrapf(err, "fetchFeed(%s:%d): message verify failed", ld.who.Ref(), ld.latestSeq)
+	}
+
+	if ld.latestSeq.Seq() > 1 {
+		if bytes.Compare(ld.latestMsg.Key.Hash, dmsg.Previous.Hash) != 0 {
+			return nil, errors.Errorf("fetchFeed(%s:%d): previous compare failed expected:%s incoming:%s",
+				ld.who.Ref(),
+				ld.latestSeq,
+				ld.latestMsg.Key.Ref(),
+				dmsg.Previous.Ref(),
+			)
+		}
+		if ld.latestMsg.Sequence+1 != dmsg.Sequence {
+			return nil, errors.Errorf("fetchFeed(%s:%d): next.seq != curr.seq+1", ld.who.Ref(), ld.latestSeq)
+		}
+	}
+
+	return &message.StoredMessage{
+		Author:    &dmsg.Author,
+		Previous:  &dmsg.Previous,
+		Key:       ref,
+		Sequence:  dmsg.Sequence,
+		Timestamp: time.Now(),
+		Raw:       rmsg.RawMessage,
+	}, nil
+}
+
+func (ld legacyDrain) Close() error {
+	fmt.Println("closing legacyDrain")
+	return nil
+}
+
+func NewOffchainDrain(who *ssb.FeedRef, start margaret.Seq, lastMsg message.StoredMessage, rl margaret.Log, hmac HMACSecret) luigi.Sink {
+	ld := legacyDrain{
+		who:       who,
+		latestSeq: start,
+		latestMsg: &lastMsg,
+		rootLog:   rl,
+		hmacSec:   hmac,
+	}
+
+	return &offchainDrain{
+		legacyDrain: ld,
+	}
+}
+
+type offchainDrain struct {
+	legacyDrain
+
+	consumed uint
+	lastData []byte
+	lastHash *ssb.OffchainMessageRef
+}
+
+func (od *offchainDrain) Pour(ctx context.Context, v interface{}) error {
+
+	// flip-flop between content and metadata
+	if od.consumed%2 == 0 {
+		var ok bool
+		od.lastData, ok = v.([]byte)
+		if !ok {
+			return errors.Errorf("b4pour: expected []byte - got %T", v)
 		}
 
-		rmsg := v.(message.RawSignedMessage)
-		ref, dmsg, err := message.Verify(rmsg.RawMessage, g.hmacSec)
-		if err != nil {
-			return errors.Wrapf(err, "fetchFeed(%s:%d): message verify failed", fr.Ref(), latestSeq)
+		h := sha256.New()
+		io.Copy(h, bytes.NewReader(od.lastData))
+
+		od.lastHash = &ssb.OffchainMessageRef{
+			Hash: h.Sum(nil),
+			Algo: ssb.RefAlgoSHA256,
 		}
+		fmt.Println("offchain content:", od.lastHash.Ref())
+		od.consumed++
+		return nil
+	}
 
-		if latestSeq > 1 {
-			if bytes.Compare(latestMsg.Key.Hash, dmsg.Previous.Hash) != 0 {
-				return errors.Errorf("fetchFeed(%s:%d): previous compare failed expected:%s incoming:%s",
-					fr.Ref(),
-					latestSeq,
-					latestMsg.Key.Ref(),
-					dmsg.Previous.Ref(),
-				)
-			}
-			if latestMsg.Sequence+1 != dmsg.Sequence {
-				return errors.Errorf("fetchFeed(%s:%d): next.seq != curr.seq+1", fr.Ref(), latestSeq)
-			}
-		}
+	nextMsg, err := od.legacyDrain.verifyAndValidate(ctx, v)
+	if err != nil {
+		return errors.Wrap(err, "offchain: failed in metadata portion")
+	}
 
-		nextMsg := message.StoredMessage{
-			Author:    &dmsg.Author,
-			Previous:  &dmsg.Previous,
-			Key:       ref,
-			Sequence:  dmsg.Sequence,
-			Timestamp: time.Now(),
-			Raw:       rmsg.RawMessage,
-		}
+	var signedRef struct {
+		Content ssb.OffchainMessageRef `json:"content"`
+	}
+	if err := json.Unmarshal(nextMsg.Raw, &signedRef); err != nil {
+		return errors.Wrap(err, "offchain: failed to parse content hash from signed message")
+	}
 
-		_, err = g.RootLog.Append(nextMsg)
-		if err != nil {
-			return errors.Wrapf(err, "fetchFeed(%s): failed to append message(%s:%d)", fr.Ref(), ref.Ref(), dmsg.Sequence)
-		}
+	if !bytes.Equal(signedRef.Content.Hash, od.lastHash.Hash) {
+		return errors.Errorf("offchain: missmatch between content and signed meta-data")
+	}
 
-		latestSeq = dmsg.Sequence
-		latestMsg = nextMsg
-	} // hist drained
+	nextMsg.Offchain = od.lastData
 
+	_, err = od.rootLog.Append(*nextMsg)
+	if err != nil {
+		return errors.Wrapf(err, "fetchFeed(%s): failed to append message(%s:%d)", od.who.Ref(), nextMsg.Key.Ref(), nextMsg.Sequence)
+	}
+
+	od.latestSeq = nextMsg.Sequence
+	od.latestMsg = nextMsg
+	fmt.Println("poured offchainMeta", od.latestSeq)
+
+	od.consumed++
 	return nil
 }

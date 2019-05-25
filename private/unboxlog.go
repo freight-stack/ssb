@@ -56,12 +56,21 @@ func (il unboxedLog) Query(args ...margaret.QuerySpec) (luigi.Source, error) {
 			return nil, errors.Wrapf(err, "unboxLog: error getting v(%v) from seqlog log", iv)
 		}
 
-		msg := val.(message.StoredMessage)
+		msg, ok := val.(message.StoredMessage)
+		if !ok {
+			return nil, errors.Errorf("wrong message type. expected %T - got %T", msg, val)
+		}
+
+		var data = msg.Raw
+		if msg.Author.Offchain {
+			data = msg.Offchain
+		}
+
 		var dmsg struct {
 			Content string `json:"content"`
 		}
 
-		if err := json.Unmarshal(msg.Raw, &dmsg); err != nil {
+		if err := json.Unmarshal(data, &dmsg); err != nil {
 			return nil, errors.Wrap(err, "unboxLog: first json unmarshal failed")
 		}
 

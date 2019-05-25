@@ -3,6 +3,8 @@ package gossip
 import (
 	"context"
 
+	"go.cryptoscope.co/muxrpc/codec"
+
 	"go.cryptoscope.co/ssb/internal/mutil"
 	"go.cryptoscope.co/ssb/internal/transform"
 
@@ -35,7 +37,7 @@ func (h *handler) pourFeed(ctx context.Context, req *muxrpc.Request) error {
 	}
 
 	// check what we got
-	userLog, err := h.UserFeeds.Get(librarian.Addr(feedRef.ID))
+	userLog, err := h.UserFeeds.Get(feedRef.StoredAddr())
 	if err != nil {
 		return errors.Wrapf(err, "failed to open sublog for user")
 	}
@@ -77,12 +79,18 @@ func (h *handler) pourFeed(ctx context.Context, req *muxrpc.Request) error {
 			if err != nil {
 				return err
 			}
-			msg, ok := v.([]byte)
+			msg, ok := v.(*transform.KeyValue)
 			if !ok {
 				return errors.Errorf("b4pour: expected []byte - got %T", v)
 			}
+			if msg.Message.Author.Offchain {
+				err := req.Stream.Pour(ctx, codec.Body(msg.Message.Offchain))
+				if err != nil {
+					return errors.Wrap(err, "b4pour: offchain send faild")
+				}
+			}
 			sent++
-			return req.Stream.Pour(ctx, message.RawSignedMessage{RawMessage: msg})
+			return req.Stream.Pour(ctx, message.RawSignedMessage{RawMessage: msg.Data})
 		})
 
 		err = luigi.Pump(ctx, snk, transform.NewKeyValueWrapper(src, qry.Keys))

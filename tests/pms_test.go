@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.cryptoscope.co/librarian"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/message"
@@ -61,7 +60,7 @@ func TestPrivMsgsFromGo(t *testing.T) {
 
 		sbot.friends.get({src: alice.id, dest: fromKey}, function(err, val) {
 			t.error(err, 'friends.get of new contact')
-			t.equals(val[alice.id], true, 'is following')
+			t.equals(val[alice.id], true, 'is following:'+JSON.stringify(val))
 
 			t.comment('shouldnt have bobs feed:' + fromKey)
 			pull(
@@ -112,7 +111,7 @@ func TestPrivMsgsFromGo(t *testing.T) {
 
 	<-ts.doneJS
 
-	aliceLog, err := s.UserFeeds.Get(librarian.Addr(alice.ID))
+	aliceLog, err := s.UserFeeds.Get(alice.StoredAddr())
 	r.NoError(err)
 
 	seqMsg, err := aliceLog.Get(margaret.BaseSeq(1))
@@ -168,7 +167,7 @@ func TestPrivMsgsFromJS(t *testing.T) {
 
 	<-ts.doneJS
 
-	aliceLog, err := bob.UserFeeds.Get(librarian.Addr(alice.ID))
+	aliceLog, err := bob.UserFeeds.Get(alice.StoredAddr())
 	r.NoError(err)
 	seq, err := aliceLog.Seq().Value()
 	r.NoError(err)
@@ -187,14 +186,18 @@ func TestPrivMsgsFromJS(t *testing.T) {
 		r.True(ok, "wrong type of message: %T", msg)
 		r.Equal(storedMsg.Sequence, margaret.BaseSeq(i+1))
 
+		if i == 0 {
+			continue // skip contact
+		}
 		type testWrap struct {
 			Author  ssb.FeedRef
 			Content string
 		}
 		var m testWrap
 		err = json.Unmarshal(storedMsg.Raw, &m)
+		t.Logf("msg:%d:%s", i, string(storedMsg.Raw))
 		r.NoError(err)
-		r.Equal(alice.ID, m.Author.ID, "wrong author")
+		r.True(alice.Equal(&m.Author), "wrong author")
 		r.True(strings.HasSuffix(m.Content, ".box"), "test")
 
 		clearMsg, err := private.Unbox(bob.KeyPair, m.Content)

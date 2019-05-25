@@ -1,7 +1,6 @@
 package sbot
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"net"
@@ -9,13 +8,13 @@ import (
 	"sync"
 	"time"
 
+	"go.cryptoscope.co/librarian"
 	"go.cryptoscope.co/netwrap"
 	"go.cryptoscope.co/secretstream"
 
 	"github.com/cryptix/go/logging"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
-	"go.cryptoscope.co/librarian"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/muxrpc"
 
@@ -29,6 +28,7 @@ import (
 	"go.cryptoscope.co/ssb/plugins/control"
 	"go.cryptoscope.co/ssb/plugins/get"
 	"go.cryptoscope.co/ssb/plugins/gossip"
+	"go.cryptoscope.co/ssb/plugins/offchain"
 	privplug "go.cryptoscope.co/ssb/plugins/private"
 	"go.cryptoscope.co/ssb/plugins/publish"
 	"go.cryptoscope.co/ssb/plugins/rawread"
@@ -156,19 +156,18 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	id := s.KeyPair.Id
 	auth := s.GraphBuilder.Authorizer(id, int(s.hopCount))
 
+	var pubopts []multilogs.PublishOption
 	if s.signHMACsecret != nil {
-		publishLog, err := multilogs.OpenPublishLogWithHMAC(s.RootLog, s.UserFeeds, *s.KeyPair, s.signHMACsecret)
-		if err != nil {
-			return nil, errors.Wrap(err, "sbot: failed to create publish log with hmac")
-		}
-		s.PublishLog = publishLog
-	} else {
-		publishLog, err := multilogs.OpenPublishLog(s.RootLog, s.UserFeeds, *s.KeyPair)
-		if err != nil {
-			return nil, errors.Wrap(err, "sbot: failed to create publish log")
-		}
-		s.PublishLog = publishLog
+		pubopts = append(pubopts, multilogs.SetHMACKey(s.signHMACsecret))
 	}
+	if s.KeyPair.Id.Offchain {
+		pubopts = append(pubopts, multilogs.EnableOffchain(true))
+	}
+	publishLog, err := multilogs.OpenPublishLog(s.RootLog, s.UserFeeds, *s.KeyPair, pubopts...)
+	if err != nil {
+		return nil, errors.Wrap(err, "sbot: failed to create publish log")
+	}
+	s.PublishLog = publishLog
 
 	pl, _, servePrivs, err := multilogs.OpenPrivateRead(kitlog.With(log, "module", "privLogs"), r, s.KeyPair)
 	if err != nil {
@@ -198,7 +197,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "sbot: expected an address containing an shs-bs addr")
 		}
-		if bytes.Equal(id.ID, remote.ID) {
+		if id.Equal(remote) {
 			return ctrl.MakeHandler(conn)
 		}
 
@@ -256,7 +255,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 				}
 
 				// spoof remote as us
-				sameAs := netwrap.WrapAddr(conn.RemoteAddr(), secretstream.Addr{PubKey: id.ID})
+				sameAs := netwrap.WrapAddr(conn.RemoteAddr(), secretstream.Addr{PubKey: id.PubKey()})
 				edp := muxrpc.HandleWithRemote(pkr, h, sameAs)
 
 				srv := edp.(muxrpc.Server)
@@ -297,7 +296,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	ctrl.Register(control.NewPlug(kitlog.With(log, "plugin", "ctrl"), node))
 
 	ctrl.Register(publish.NewPlug(kitlog.With(log, "plugin", "publish"), s.PublishLog, s.RootLog))
-	userPrivs, err := pl.Get(librarian.Addr(s.KeyPair.Id.ID))
+	userPrivs, err := pl.Get(librarian.Addr(s.KeyPair.Id.PubKey()))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to open user private index")
 	}
@@ -318,8 +317,16 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	var histOpts = []interface{}{
 		gossip.HopCount(s.hopCount),
 		gossip.Promisc(s.promisc),
-		s.systemGauge, s.eventCounter,
 	}
+
+	if s.systemGauge != nil {
+		histOpts = append(histOpts, s.systemGauge)
+	}
+
+	if s.eventCounter != nil {
+		histOpts = append(histOpts, s.eventCounter)
+	}
+
 	if s.signHMACsecret != nil {
 		var k [32]byte
 		copy(k[:], s.signHMACsecret)
@@ -327,6 +334,12 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	}
 	pmgr.Register(gossip.New(
 		kitlog.With(log, "plugin", "gossip"),
+		id, rootLog, uf, s.GraphBuilder,
+		histOpts...))
+
+	// offchain version
+	pmgr.Register(offchain.New(
+		kitlog.With(log, "plugin", "offchain"),
 		id, rootLog, uf, s.GraphBuilder,
 		histOpts...))
 

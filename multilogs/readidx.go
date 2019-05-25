@@ -4,13 +4,11 @@ import (
 	"context"
 	"encoding/json"
 
-	"go.cryptoscope.co/librarian"
-	"go.cryptoscope.co/margaret/multilog"
-
 	"github.com/dgraph-io/badger"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 	"go.cryptoscope.co/margaret"
+	"go.cryptoscope.co/margaret/multilog"
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/private"
@@ -29,26 +27,25 @@ func OpenPrivateRead(log kitlog.Logger, r repo.Interface, kp *ssb.KeyPair) (mult
 			return nulled
 		}
 
-		msg := val.(message.StoredMessage)
+		msg, ok := val.(message.StoredMessage)
+		if !ok {
+			return errors.Errorf("db/idx private: expected %T - got %T", msg, val)
+		}
+
 		var dmsg struct {
-			Content interface{} `json:"content"`
+			Content string `json:"content"`
 		}
 
 		if err := json.Unmarshal(msg.Raw, &dmsg); err != nil {
-			return errors.Wrap(err, "db/idx about: first json unmarshal failed")
-		}
-
-		privstr, ok := dmsg.Content.(string)
-		if !ok {
 			// skip everything that isn't a string
 			return nil
 		}
 
-		if _, err := private.Unbox(kp, privstr); err != nil {
+		if _, err := private.Unbox(kp, dmsg.Content); err != nil {
 			return nil
 		}
 
-		userPrivs, err := mlog.Get(librarian.Addr(kp.Id.ID))
+		userPrivs, err := mlog.Get(kp.Id.StoredAddr())
 		if err != nil {
 			return errors.Wrap(err, "error opening priv sublog")
 		}

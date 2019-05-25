@@ -10,15 +10,25 @@ import (
 	"go.cryptoscope.co/ssb/message"
 )
 
+type KeyValue struct {
+	Message message.StoredMessage
+	Data    []byte
+}
+
 func NewKeyValueWrapper(src luigi.Source, wrap bool) luigi.Source {
 	return mfr.SourceMap(src, func(ctx context.Context, v interface{}) (interface{}, error) {
 		storedMsg, ok := v.(message.StoredMessage)
 		if !ok {
 			return nil, errors.Errorf("wrong message type. expected %T - got %T", storedMsg, v)
 		}
+
 		if !wrap {
-			return storedMsg.Raw, nil
+			return &KeyValue{
+				Message: storedMsg,
+				Data:    storedMsg.Raw,
+			}, nil
 		}
+
 		var kv message.KeyValueRaw
 		kv.Key = storedMsg.Key
 		kv.Value = storedMsg.Raw
@@ -27,6 +37,10 @@ func NewKeyValueWrapper(src luigi.Source, wrap bool) luigi.Source {
 		if err != nil {
 			return nil, errors.Wrapf(err, "rootLog: failed to k:v map message")
 		}
-		return kvMsg, nil
+		return &KeyValue{
+			Message: storedMsg,
+			Data:    kvMsg,
+		}, nil
+
 	})
 }

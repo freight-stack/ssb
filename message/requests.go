@@ -98,10 +98,19 @@ type StoredMessage struct {
 	Sequence  margaret.BaseSeq
 	Timestamp time.Time
 	Raw       []byte // the original message for gossiping see ssb.EncodePreserveOrdering for why
+	Offchain  []byte
 }
 
 func (sm StoredMessage) String() string {
-	return fmt.Sprintf("msg(%s) %s", sm.Author.Ref(), sm.Key.Ref())
+	s := fmt.Sprintf("msg(%s:%d) %s", sm.Author.Ref(), sm.Sequence, sm.Key.Ref())
+	b, _ := EncodePreserveOrder(sm.Raw)
+	s += "\n"
+	s += string(b)
+	if len(sm.Offchain) > 0 {
+		s += "\nOffchain Content:\n"
+		s += string(sm.Offchain)
+	}
+	return s
 }
 
 type DeserializedMessage struct {

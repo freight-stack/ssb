@@ -36,8 +36,7 @@ type AboutAttribute struct {
 }
 
 func (ab aboutStore) GetName(ref *ssb.FeedRef) (*AboutInfo, error) {
-	addr := append(ref.ID, ':')
-
+	addr := []byte(ref.StoredAddr() + ":")
 	// from self
 	// addr = append(addr, ref.ID...)
 
@@ -64,11 +63,11 @@ func (ab aboutStore) GetName(ref *ssb.FeedRef) (*AboutInfo, error) {
 		for iter.Seek(addr); iter.ValidForPrefix(addr); iter.Next() {
 			it := iter.Item()
 			k := it.Key()
-			c := ssb.FeedRef{ // who authored the about
-				Algo: "ed25519",
-				ID:   k[33 : 33+32],
+			c, err := ssb.NewFeedRefEd25519(k[len(addr):])
+			if err != nil {
+				return errors.Wrap(err, "about: counldnt make author ref from db key")
 			}
-			err := it.Value(func(v []byte) error {
+			err = it.Value(func(v []byte) error {
 				// log.Printf("about debug: %s ", c.Ref())
 				var fieldPtr *AboutAttribute
 				foundVal := string(v)
@@ -80,8 +79,7 @@ func (ab aboutStore) GetName(ref *ssb.FeedRef) (*AboutInfo, error) {
 				case bytes.HasSuffix(k, []byte(":image")):
 					fieldPtr = &reduced.Image
 				}
-
-				if bytes.Equal(c.ID, ref.ID) {
+				if c.Equal(ref) {
 					fieldPtr.Chosen = foundVal
 				} else {
 					cnt, has := fieldPtr.Prescribed[foundVal]
@@ -149,22 +147,19 @@ func updateAboutMessage(ctx context.Context, seq margaret.Seq, val interface{}, 
 		return nil
 	}
 
-	// about:from:key
-	addr := append(aboutMSG.About.ID, ':')
-	addr = append(addr, dmsg.Author.ID...)
-	switch {
-	case aboutMSG.Name != "":
-		err = idx.Set(ctx,
-			librarian.Addr(append(addr, []byte(":name")...)),
-			aboutMSG.Name)
-	case aboutMSG.Description != "":
-		err = idx.Set(ctx,
-			librarian.Addr(append(addr, []byte(":description")...)),
-			aboutMSG.Description)
-	case aboutMSG.Image != nil:
-		err = idx.Set(ctx,
-			librarian.Addr(append(addr, []byte(":image")...)),
-			aboutMSG.Image.Ref())
+	// about:from:field
+	addr := aboutMSG.About.StoredAddr()
+	addr += ":"
+	addr += dmsg.Author.StoredAddr()
+	addr += ":"
+	if aboutMSG.Name != "" {
+		err = idx.Set(ctx, addr+"name", aboutMSG.Name)
+	}
+	if aboutMSG.Description != "" {
+		err = idx.Set(ctx, addr+"description", aboutMSG.Description)
+	}
+	if aboutMSG.Image != nil {
+		err = idx.Set(ctx, addr+"image", aboutMSG.Image.Ref())
 	}
 	if err != nil {
 		return errors.Wrap(err, "db/idx about: failed to update field")

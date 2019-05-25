@@ -2,34 +2,43 @@ package tests
 
 import (
 	"encoding/json"
-	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/message"
+	"go.cryptoscope.co/ssb/sbot"
 )
 
-func TestFeedFromJS(t *testing.T) {
+func TestContentFeedFromJS(t *testing.T) {
+	a := assert.New(t)
 	r := require.New(t)
 	const n = 23
 
 	ts := newRandomSession(t)
 
-	ts.startGoBot()
+	kp, err := ssb.NewKeyPair(nil)
+	r.NoError(err)
+	kp.Id.Offchain = true
+
+	ts.startGoBot(sbot.WithKeyPair(kp))
 	bob := ts.gobot
+
+	r.True(strings.HasSuffix(bob.KeyPair.Id.Ref(), ".offchain"))
 
 	alice := ts.startJSBot(`
 	function mkMsg(msg) {
 		return function(cb) {
-			sbot.publish(msg, cb)
+			sbot.contentStream.publish(msg, cb)
 		}
 	}
 	n = 23
 	let msgs = []
 	for (var i = n; i>0; i--) {
-		msgs.push(mkMsg({type:"test", text:"foo", i:i}))
+		msgs.push(mkMsg({type:"offchain", text:"foo", test:i}))
 	}
 
 	// be done when the other party is done
@@ -58,7 +67,6 @@ func TestFeedFromJS(t *testing.T) {
 	r.NoError(err)
 	r.Equal(margaret.BaseSeq(n-1), seq)
 
-	var lastMsg string
 	for i := 0; i < n; i++ {
 		// only one feed in log - directly the rootlog sequences
 		seqMsg, err := aliceLog.Get(margaret.BaseSeq(i))
@@ -75,100 +83,62 @@ func TestFeedFromJS(t *testing.T) {
 			Author  ssb.FeedRef
 			Content struct {
 				Type, Text string
-				I          int
+				Test       int
 			}
 		}
 		var m testWrap
 		err = json.Unmarshal(storedMsg.Raw, &m)
 		r.NoError(err)
 		r.True(alice.Equal(&m.Author), "wrong author")
-		r.Equal(m.Content.Type, "test")
-		r.Equal(m.Content.Text, "foo")
-		r.Equal(m.Content.I, n-i, "wrong I on msg: %d", i)
-		if i == n-1 {
-			lastMsg = storedMsg.Key.Ref()
-		}
+		a.Equal(m.Content.Type, "offchain")
+		a.Equal(m.Content.Text, "foo")
+		a.Equal(m.Content.Test, n-i, "wrong I on msg: %d", i)
+		t.Log(string(storedMsg.Raw))
 	}
-
-	before := fmt.Sprintf(`fromKey = %q // global - pubKey of the first alice
-t.comment('shouldnt have alices feed:' + fromKey)
-
-sbot.on('rpc:connect', (rpc) => {
-  rpc.on('closed', () => { 
-    t.comment('now should have feed:' + fromKey)
-    pull(
-      sbot.createUserStream({id:fromKey, reverse:true, limit: 1}),
-      pull.collect(function(err, msgs) {
-        t.error(err, 'query worked')
-        t.equal(1, msgs.length, 'got all the messages')
-        t.equal(%q, msgs[0].key, 'latest keys match')
-        t.equal(23, msgs[0].value.sequence, 'latest sequence')
-        exit()
-      })
-    )
-  })
-})
-
-sbot.publish({type: 'contact', contact: fromKey, following: true}, function(err, msg) {
-  t.error(err, 'follow:' + fromKey)
-
-sbot.friends.get({src: alice.id, dest: fromKey}, function(err, val) {
-  t.error(err, 'friends.get of new contact')
-  t.equals(val[alice.id], true, 'is following')
-
-pull(
-  sbot.createUserStream({id:fromKey}),
-  pull.collect(function(err, vals){
-    t.error(err)
-    t.equal(0, vals.length)
-    run() // connect to go-sbot
-  })
-)
-
-}) // friends.get
-
-}) // publish`, alice.Ref(), lastMsg)
-
-	claire := ts.startJSBot(before, "")
-
-	t.Logf("started claire: %s", claire.Ref())
-	newSeq, err = bob.PublishLog.Append(map[string]interface{}{
-		"type":      "contact",
-		"contact":   claire.Ref(),
-		"following": true,
-	})
-	r.NoError(err, "failed to publish 2nd contact message")
-	r.NotNil(newSeq)
-
-	ts.wait()
 }
 
-func TestFeedFromGo(t *testing.T) {
+func TestContentFeedFromGo(t *testing.T) {
 	r := require.New(t)
 
 	ts := newRandomSession(t)
 	// ts := newSession(t, nil, nil)
 
-	ts.startGoBot()
+	// make offchain ID
+	kp, err := ssb.NewKeyPair(nil)
+	r.NoError(err)
+	kp.Id.Offchain = true
+
+	ts.startGoBot(sbot.WithKeyPair(kp))
 	s := ts.gobot
+
+	r.True(strings.HasSuffix(s.KeyPair.Id.Ref(), ".offchain"))
 
 	before := `fromKey = testBob
 	sbot.on('rpc:connect', (rpc) => {
 		rpc.on('closed', () => {
 			t.comment('now should have feed:' + fromKey)
 			pull(
-				sbot.createUserStream({id:fromKey, reverse:true, limit: 4}),
-				pull.collect(function(err, msgs) {
-					t.error(err, 'query worked')
-					t.equal(msgs.length, 4, 'got all the messages')
-					// t.comment(JSON.stringify(msgs[0]))
-					t.equal(msgs[0].value.sequence, 4, 'sequence:0')
-					t.equal(msgs[1].value.sequence, 3, 'sequence:1')
-					t.equal(msgs[2].value.sequence, 2, 'sequence:2')
-					exit()
+				sbot.contentStream.getContentStream({id: fromKey}),
+				pull.collect((err, msgs) => {
+					t.error(err)
+					console.warn('BHC: '+msgs.length)
+					console.warn(JSON.stringify(msgs))
+					t.end()
 				})
 			)
 		})
+		setTimeout(() => {
+			t.comment('now should have feed:' + fromKey)
+			pull(
+				sbot.contentStream.getContentStream({id: fromKey}),
+				pull.collect((err, msgs) => {
+					t.error(err)
+					console.warn('Messages: '+msgs.length)
+					console.warn(JSON.stringify(msgs))
+					// t.end()
+				})
+			)
+		},1000)
 	})
 
 	sbot.publish({type: 'contact', contact: fromKey, following: true}, function(err, msg) {
@@ -199,9 +169,8 @@ func TestFeedFromGo(t *testing.T) {
 
 	var tmsgs = []interface{}{
 		map[string]interface{}{
-			"type":  "about",
-			"about": s.KeyPair.Id.Ref(),
-			"name":  "test user",
+			"type":  "ex-message",
+			"hello": "world",
 		},
 		map[string]interface{}{
 			"type":      "contact",
@@ -209,13 +178,9 @@ func TestFeedFromGo(t *testing.T) {
 			"following": true,
 		},
 		map[string]interface{}{
-			"type": "text",
-			"text": `# hello world!`,
-		},
-		map[string]interface{}{
-			"type":  "about",
-			"about": alice.Ref(),
-			"name":  "test alice",
+			"type":  "message",
+			"text":  "whoops",
+			"fault": true,
 		},
 	}
 	for i, msg := range tmsgs {
@@ -229,13 +194,13 @@ func TestFeedFromGo(t *testing.T) {
 	aliceLog, err := s.UserFeeds.Get(alice.StoredAddr())
 	r.NoError(err)
 
-	seqMsg, err := aliceLog.Get(margaret.BaseSeq(1))
+	seqMsg, err := aliceLog.Get(margaret.BaseSeq(2))
 	r.NoError(err)
 	msg, err := s.RootLog.Get(seqMsg.(margaret.BaseSeq))
 	r.NoError(err)
 	storedMsg, ok := msg.(message.StoredMessage)
 	r.True(ok, "wrong type of message: %T", msg)
-	r.Equal(storedMsg.Sequence, margaret.BaseSeq(2))
+	r.Equal(storedMsg.Sequence, margaret.BaseSeq(3))
 
 	ts.wait()
 }
