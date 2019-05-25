@@ -1,16 +1,11 @@
 package sbot
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"net"
 	"os"
 	"sync"
-	"time"
-
-	"go.cryptoscope.co/netwrap"
-	"go.cryptoscope.co/secretstream"
 
 	"github.com/cryptix/go/logging"
 	kitlog "github.com/go-kit/kit/log"
@@ -18,11 +13,15 @@ import (
 	"go.cryptoscope.co/librarian"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/muxrpc"
+	"go.cryptoscope.co/netwrap"
+	"go.cryptoscope.co/secretstream"
 
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/blobstore"
 	"go.cryptoscope.co/ssb/indexes"
 	"go.cryptoscope.co/ssb/internal/ctxutils"
+	"go.cryptoscope.co/ssb/message/gabbygrove"
+	"go.cryptoscope.co/ssb/message/protochain"
 	"go.cryptoscope.co/ssb/multilogs"
 	"go.cryptoscope.co/ssb/network"
 	"go.cryptoscope.co/ssb/plugins/blobs"
@@ -40,6 +39,8 @@ import (
 
 type Interface interface {
 	io.Closer
+	// ssb.Getter
+	// ssb.Publisher
 }
 
 var _ Interface = (*Sbot)(nil)
@@ -65,6 +66,7 @@ func (s *Sbot) Close() error {
 func initSbot(s *Sbot) (*Sbot, error) {
 	log := s.info
 	var ctx context.Context
+	var err error
 	ctx, s.Shutdown = ctxutils.WithError(s.rootCtx, ssb.ErrShuttingDown)
 
 	goThenLog := func(ctx context.Context, l margaret.Log, name string, f repo.ServeFunc) {
@@ -83,18 +85,18 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	}
 
 	r := repo.New(s.repoPath)
-	rootLog, err := repo.OpenLog(r)
+
+	s.RootLog, err = repo.OpenLog(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "sbot: failed to open rootlog")
 	}
-	s.closers.addCloser(rootLog.(io.Closer))
-	s.RootLog = rootLog
+	s.closers.addCloser(s.RootLog.(io.Closer))
 
 	getIdx, serveGet, err := indexes.OpenGet(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "sbot: failed to open get index")
 	}
-	goThenLog(ctx, rootLog, "get", serveGet)
+	goThenLog(ctx, s.RootLog, "get", serveGet)
 	s.idxGet = getIdx
 
 	uf, _, serveUF, err := multilogs.OpenUserFeeds(r)
@@ -102,7 +104,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		return nil, errors.Wrap(err, "sbot: failed to open user sublogs")
 	}
 	s.closers.addCloser(uf)
-	goThenLog(ctx, rootLog, "userFeeds", serveUF)
+	goThenLog(ctx, s.RootLog, "userFeeds", serveUF)
 	s.UserFeeds = uf
 
 	mt, _, serveMT, err := multilogs.OpenMessageTypes(r)
@@ -110,7 +112,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		return nil, errors.Wrap(err, "sbot: failed to open message type sublogs")
 	}
 	s.closers.addCloser(mt)
-	goThenLog(ctx, rootLog, "msgTypes", serveMT)
+	goThenLog(ctx, s.RootLog, "msgTypes", serveMT)
 	s.MessageTypes = mt
 
 	tangles, _, servetangles, err := multilogs.OpenTangles(r)
@@ -118,7 +120,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		return nil, errors.Wrap(err, "sbot: failed to open message type sublogs")
 	}
 	s.closers.addCloser(tangles)
-	goThenLog(ctx, rootLog, "tangles", servetangles)
+	goThenLog(ctx, s.RootLog, "tangles", servetangles)
 	s.Tangles = tangles
 
 	/* new style graph builder
@@ -136,7 +138,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "sbot: OpenContacts failed")
 	}
-	goThenLog(ctx, rootLog, "contacts", serveContacts)
+	goThenLog(ctx, s.RootLog, "contacts", serveContacts)
 	s.GraphBuilder = gb
 
 	bs, err := repo.OpenBlobStore(r)
@@ -156,18 +158,28 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	id := s.KeyPair.Id
 	auth := s.GraphBuilder.Authorizer(id, int(s.hopCount))
 
-	if s.signHMACsecret != nil {
-		publishLog, err := multilogs.OpenPublishLogWithHMAC(s.RootLog, s.UserFeeds, *s.KeyPair, s.signHMACsecret)
+	switch s.KeyPair.Id.Algo {
+	case ssb.RefAlgoGabby:
+		s.PublishLog, err = gabbygrove.NewPublisher(s.RootLog, s.UserFeeds, s.KeyPair) // TODO: s.signHMACsecret
 		if err != nil {
-			return nil, errors.Wrap(err, "sbot: failed to create publish log with hmac")
+			return nil, errors.Wrap(err, "sbot: failed to create legacy publish log")
 		}
-		s.PublishLog = publishLog
-	} else {
-		publishLog, err := multilogs.OpenPublishLog(s.RootLog, s.UserFeeds, *s.KeyPair)
+	case ssb.RefAlgoProto:
+		s.PublishLog, err = protochain.NewPublisher(s.RootLog, s.UserFeeds, s.KeyPair) // TODO: s.signHMACsecret
 		if err != nil {
-			return nil, errors.Wrap(err, "sbot: failed to create publish log")
+			return nil, errors.Wrap(err, "sbot: failed to create legacy publish log")
 		}
-		s.PublishLog = publishLog
+	case ssb.RefAlgoEd25519:
+		var pubopts []multilogs.PublishOption
+		if s.signHMACsecret != nil {
+			pubopts = append(pubopts, multilogs.SetHMACKey(s.signHMACsecret))
+		}
+		s.PublishLog, err = multilogs.OpenPublishLog(s.RootLog, s.UserFeeds, s.KeyPair)
+		if err != nil {
+			return nil, errors.Wrap(err, "sbot: failed to create legacy publish log")
+		}
+	default:
+		return nil, errors.Errorf("sbot: unknown feed format: %s", s.KeyPair.Id.Algo)
 	}
 
 	pl, _, servePrivs, err := multilogs.OpenPrivateRead(kitlog.With(log, "module", "privLogs"), r, s.KeyPair)
@@ -175,7 +187,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		return nil, errors.Wrap(err, "sbot: failed to create privte read idx")
 	}
 	s.closers.addCloser(pl)
-	goThenLog(ctx, rootLog, "privLogs", servePrivs)
+	goThenLog(ctx, s.RootLog, "privLogs", servePrivs)
 	s.PrivateLogs = pl
 
 	ab, serveAbouts, err := indexes.OpenAbout(kitlog.With(log, "index", "abouts"), r)
@@ -183,7 +195,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		return nil, errors.Wrap(err, "sbot: failed to open about idx")
 	}
 	// s.closers.addCloser(ab)
-	goThenLog(ctx, rootLog, "abouts", serveAbouts)
+	goThenLog(ctx, s.RootLog, "abouts", serveAbouts)
 	s.AboutStore = ab
 
 	if s.disableNetwork {
@@ -198,25 +210,39 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "sbot: expected an address containing an shs-bs addr")
 		}
-		if bytes.Equal(id.ID, remote.ID) {
+		if id.Equal(remote) {
 			return ctrl.MakeHandler(conn)
 		}
 
-		if !s.promisc {
-			start := time.Now()
-			err = auth.Authorize(remote)
-			if s.latency != nil {
-				s.latency.With("part", "graph_auth").Observe(time.Since(start).Seconds())
-			}
-			if err != nil {
-				return nil, err
-			}
+		if s.promisc {
+			return pmgr.MakeHandler(conn)
 		}
-		return pmgr.MakeHandler(conn)
+		// start := time.Now()
+		err = auth.Authorize(remote)
+		// if s.latency != nil {
+		// 	s.latency.With("part", "graph_auth").Observe(time.Since(start).Seconds())
+		// }
+		if err == nil {
+			return pmgr.MakeHandler(conn)
+		}
+
+		// shit - don't see a way to pass being a different feedtype with shs1
+		remote.Algo = ssb.RefAlgoProto
+		err = auth.Authorize(remote)
+		if err == nil {
+			return pmgr.MakeHandler(conn)
+		}
+
+		remote.Algo = ssb.RefAlgoGabby
+		err = auth.Authorize(remote)
+		if err == nil {
+			return pmgr.MakeHandler(conn)
+		}
+		return nil, err
 	}
 
 	ctrl.Register(publish.NewPlug(kitlog.With(log, "plugin", "publish"), s.PublishLog, s.RootLog))
-	userPrivs, err := pl.Get(librarian.Addr(s.KeyPair.Id.ID))
+	userPrivs, err := pl.Get(librarian.Addr(s.KeyPair.Id.PubKey()))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to open user private index")
 	}
@@ -237,8 +263,16 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	var histOpts = []interface{}{
 		gossip.HopCount(s.hopCount),
 		gossip.Promisc(s.promisc),
-		s.systemGauge, s.eventCounter,
 	}
+
+	if s.systemGauge != nil {
+		histOpts = append(histOpts, s.systemGauge)
+	}
+
+	if s.eventCounter != nil {
+		histOpts = append(histOpts, s.eventCounter)
+	}
+
 	if s.signHMACsecret != nil {
 		var k [32]byte
 		copy(k[:], s.signHMACsecret)
@@ -246,26 +280,25 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	}
 	pmgr.Register(gossip.New(
 		kitlog.With(log, "plugin", "gossip"),
-		id, rootLog, uf, s.GraphBuilder,
+		id, s.RootLog, uf, s.GraphBuilder,
 		histOpts...))
 
 	// incoming createHistoryStream handler
 	hist := gossip.NewHist(
 		kitlog.With(log, "plugin", "gossip/hist"),
-		id, rootLog, uf, s.GraphBuilder,
+		id, s.RootLog, uf, s.GraphBuilder,
 		histOpts...)
 	pmgr.Register(hist)
 
 	ctrl.Register(get.New(s))
 
 	// raw log plugins
-	ctrl.Register(rawread.NewTanglePlug(rootLog, s.Tangles))
-	ctrl.Register(rawread.NewRXLog(rootLog))      // createLogStream
-	ctrl.Register(rawread.NewByType(rootLog, mt)) // messagesByType
-	ctrl.Register(hist)                           // createHistoryStream
+	ctrl.Register(rawread.NewTanglePlug(s.RootLog, s.Tangles))
+	ctrl.Register(rawread.NewRXLog(s.RootLog))      // createLogStream
+	ctrl.Register(rawread.NewByType(s.RootLog, mt)) // messagesByType
+	ctrl.Register(hist)                             // createHistoryStream
 
 	ctrl.Register(replicate.NewPlug(s.UserFeeds))
-
 	// local clients (not using network package because we don't want conn limiting or advertising)
 	c, err := net.Dial("unix", r.GetPath("socket"))
 	if err == nil {
@@ -307,7 +340,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 				}
 
 				// spoof remote as us
-				sameAs := netwrap.WrapAddr(conn.RemoteAddr(), secretstream.Addr{PubKey: id.ID})
+				sameAs := netwrap.WrapAddr(conn.RemoteAddr(), secretstream.Addr{PubKey: id.PubKey()})
 				edp := muxrpc.HandleWithRemote(pkr, h, sameAs)
 
 				srv := edp.(muxrpc.Server)

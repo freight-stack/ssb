@@ -12,6 +12,8 @@ require (
 	github.com/dgraph-io/badger v2.0.0-rc.2.0.20190610165348-a804ffa35fb9+incompatible
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/go-kit/kit v0.8.0
+	github.com/gogo/protobuf v1.1.1
+	github.com/golang/protobuf v1.3.1
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/keks/nocomment v0.0.0-20181007001506-30c6dcb4a472
 	github.com/kylelemons/godebug v1.1.0

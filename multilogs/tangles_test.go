@@ -37,17 +37,17 @@ func XTestTangles(t *testing.T) {
 
 	alice, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	alicePublish, err := OpenPublishLog(tRootLog, uf, *alice)
+	alicePublish, err := OpenPublishLog(tRootLog, uf, alice)
 	r.NoError(err)
 
 	bob, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	bobPublish, err := OpenPublishLog(tRootLog, uf, *bob)
+	bobPublish, err := OpenPublishLog(tRootLog, uf, bob)
 	r.NoError(err)
 
 	claire, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	clairePublish, err := OpenPublishLog(tRootLog, uf, *claire)
+	clairePublish, err := OpenPublishLog(tRootLog, uf, claire)
 	r.NoError(err)
 
 	// > create contacts

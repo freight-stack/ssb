@@ -1,0 +1,17 @@
+{
+  "name": "gabbygrove",
+  "version": "1.0.0",
+  "description": "an append-only hash chain",
+  "main": "test.js",
+  "dependencies": {
+    "protobufjs": "^6.8.8",
+    "sodium-native": "^2.4.2",
+    "ssb-keys": "^7.1.7"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node test.js"
+  },
+  "author": "cryptix@riseup.net",
+  "license": "ISC"
+}

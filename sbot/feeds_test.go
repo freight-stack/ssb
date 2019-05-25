@@ -10,7 +10,6 @@ import (
 
 	"github.com/cryptix/go/logging/logtest"
 
-	"go.cryptoscope.co/librarian"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
 
@@ -80,7 +79,7 @@ func TestFeedsOneByOne(t *testing.T) {
 	r.NoError(err)
 	r.True(g.Follows(bob.KeyPair.Id, ali.KeyPair.Id))
 
-	alisLog, err := bob.UserFeeds.Get(librarian.Addr(ali.KeyPair.Id.ID))
+	alisLog, err := bob.UserFeeds.Get(ali.KeyPair.Id.StoredAddr())
 	r.NoError(err)
 
 	for i := 0; i < 9; i++ {

@@ -16,7 +16,6 @@ import (
 
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/internal/ctxutils"
-	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/repo"
 )
 
@@ -46,17 +45,17 @@ func TestMessageTypes(t *testing.T) {
 
 	alice, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	alicePublish, err := OpenPublishLog(tRootLog, mt, *alice)
+	alicePublish, err := OpenPublishLog(tRootLog, mt, alice)
 	r.NoError(err)
 
 	bob, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	bobPublish, err := OpenPublishLog(tRootLog, mt, *bob)
+	bobPublish, err := OpenPublishLog(tRootLog, mt, bob)
 	r.NoError(err)
 
 	claire, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	clairePublish, err := OpenPublishLog(tRootLog, mt, *claire)
+	clairePublish, err := OpenPublishLog(tRootLog, mt, claire)
 	r.NoError(err)
 
 	// > create contacts
@@ -202,12 +201,12 @@ func makeCompareSink(texpected []string, rootLog margaret.Log) (luigi.FuncSink, 
 
 		m := make(map[string]interface{})
 
-		err = json.Unmarshal(v.(message.StoredMessage).Raw, &m)
+		abs := v.(ssb.Message)
+		err = json.Unmarshal(abs.ContentBytes(), &m)
 		if err != nil {
 			return errors.Errorf("error decoding stored message %q", v)
 		}
-		mt := m["content"].(map[string]interface{})
-		if got := mt["test"]; got != texpected[i] {
+		if got := m["test"]; got != texpected[i] {
 			return errors.Errorf("unexpected value %+v instead of %+v at i=%v", got, texpected[i], i)
 		}
 
