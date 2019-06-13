@@ -207,7 +207,14 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		return pmgr.MakeHandler(conn)
 	}
 
-	// local clients
+	// local clients (not using network package because we don't want conn limiting or advertising)
+	c, err := net.Dial("unix", r.GetPath("socket"))
+	if err == nil {
+		c.Close()
+		return nil, errors.Errorf("sbot: repo already in use, socket accepted connection")
+	}
+	os.Remove(r.GetPath("socket"))
+
 	uxLis, err := net.Listen("unix", r.GetPath("socket"))
 	if err != nil {
 		return nil, err
@@ -223,19 +230,20 @@ func initSbot(s *Sbot) (*Sbot, error) {
 			}
 
 			go func() {
-
 				pkr := muxrpc.NewPacker(conn)
-				// if cn, ok := pkr.(muxrpc.CloseNotifier); ok {
-				// 	go func() {
-				// 		<-cn.Closed()
-				// 		cancel()
-				// 	}()
-				// }
+				ctx, cancel := context.WithCancel(ctx)
+				if cn, ok := pkr.(muxrpc.CloseNotifier); ok {
+					go func() {
+						<-cn.Closed()
+						cancel()
+					}()
+				}
 
 				h, err := ctrl.MakeHandler(conn)
 				if err != nil {
 					err = errors.Wrap(err, "unix sock make handler")
 					s.info.Log("warn", err)
+					cancel()
 					return
 				}
 
@@ -247,6 +255,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 				if err := srv.Serve(ctx); err != nil {
 					s.info.Log("conn", "serve exited", "err", err, "peer", conn.RemoteAddr())
 				}
+				cancel()
 			}()
 		}
 	}()
