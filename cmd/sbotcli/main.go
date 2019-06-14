@@ -219,9 +219,9 @@ CAVEAT: only one argument...
 		args := ctx.Args().Slice()
 		v := strings.Split(cmd, ".")
 		var sendArgs []interface{}
-		if len(args) > 0 {
-			sendArgs = make([]interface{}, len(args))
-			for i, v := range args {
+		if len(args) > 1 {
+			sendArgs = make([]interface{}, len(args)-1)
+			for i, v := range args[1:] {
 				sendArgs[i] = v
 			}
 		}
