@@ -27,6 +27,7 @@ import (
 	"go.cryptoscope.co/ssb/network"
 	"go.cryptoscope.co/ssb/plugins/blobs"
 	"go.cryptoscope.co/ssb/plugins/control"
+	"go.cryptoscope.co/ssb/plugins/get"
 	"go.cryptoscope.co/ssb/plugins/gossip"
 	privplug "go.cryptoscope.co/ssb/plugins/private"
 	"go.cryptoscope.co/ssb/plugins/publish"
@@ -335,6 +336,8 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		id, rootLog, uf, s.GraphBuilder,
 		histOpts...)
 	pmgr.Register(hist)
+
+	ctrl.Register(get.New(s))
 
 	// raw log plugins
 	ctrl.Register(rawread.NewTanglePlug(rootLog, s.Tangles))
