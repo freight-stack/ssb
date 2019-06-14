@@ -79,23 +79,23 @@ func (h handler) HandleCall(ctx context.Context, req *muxrpc.Request, edp muxrpc
 	}
 
 	var retMsg json.RawMessage
-	if msg.Author.Offchain {
-		var tmpMsg message.DeserializedMessage
-		tmpMsg.Previous = *msg.Previous
-		tmpMsg.Author = *msg.Author
-		tmpMsg.Sequence = msg.Sequence
-		// tmpMsg.Timestamp = msg. TODO: meh.. need to get the user-timestamp from the raw field
-		tmpMsg.Hash = msg.Key.Algo
-		tmpMsg.Content = msg.Offchain
+	// if msg.Author.Offchain {
+	// 	var tmpMsg message.DeserializedMessage
+	// 	tmpMsg.Previous = *msg.Previous
+	// 	tmpMsg.Author = *msg.Author
+	// 	tmpMsg.Sequence = msg.Sequence
+	// 	// tmpMsg.Timestamp = msg. TODO: meh.. need to get the user-timestamp from the raw field
+	// 	tmpMsg.Hash = msg.Key.Algo
+	// 	tmpMsg.Content = msg.Offchain
 
-		retMsg, err = json.Marshal(tmpMsg)
-		if err != nil {
-			req.CloseWithError(errors.Wrap(err, "failed to re-wrap offchain message"))
-			return
-		}
-	} else {
-		retMsg = msg.Raw
-	}
+	// 	retMsg, err = json.Marshal(tmpMsg)
+	// 	if err != nil {
+	// 		req.CloseWithError(errors.Wrap(err, "failed to re-wrap offchain message"))
+	// 		return
+	// 	}
+	// } else {
+	retMsg = msg.Raw
+	// }
 	err = req.Return(ctx, retMsg)
 	if err != nil {
 		fmt.Println("get: failed to return message:", err)
