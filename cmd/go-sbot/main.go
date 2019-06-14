@@ -196,8 +196,10 @@ func main() {
 
 	var followCnt, msgCount uint
 	for _, author := range feeds {
-		authorRef, err := ssb.ParseFeedRef(string(author))
-		checkFatal(err)
+		authorRef := ssb.FeedRef{
+			Algo: "ed25519",
+			ID:   []byte(author),
+		}
 
 		subLog, err := uf.Get(author)
 		checkFatal(err)
@@ -227,11 +229,11 @@ func main() {
 
 		msgCount += uint(msg.Sequence)
 
-		f, err := gb.Follows(authorRef)
+		f, err := gb.Follows(&authorRef)
 		checkFatal(err)
 
 		if len(feeds) < 20 {
-			h := gb.Hops(authorRef, 2)
+			h := gb.Hops(&authorRef, 2)
 			log.Log("info", "currSeq", "feed", authorRef.Ref(), "seq", msg.Sequence, "follows", f.Count(), "hops", h.Count())
 		}
 		followCnt += uint(f.Count())
