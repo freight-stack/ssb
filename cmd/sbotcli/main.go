@@ -29,8 +29,6 @@ import (
 )
 
 var (
-	defaultKeyFile string
-
 	longctx      context.Context
 	shutdownFunc func()
 
@@ -39,13 +37,15 @@ var (
 
 	log   logging.Interface
 	check = logging.CheckFatal
+
+	keyFileFlag = cli.StringFlag{Name: "key,k", Value: "unset"}
 )
 
 func init() {
 	u, err := user.Current()
 	check(err)
 
-	defaultKeyFile = filepath.Join(u.HomeDir, ".ssb-go", "secret")
+	keyFileFlag.Value = filepath.Join(u.HomeDir, ".ssb-go", "secret")
 }
 
 var Revision = "unset"
@@ -59,7 +59,7 @@ var app = cli.App{
 		&cli.StringFlag{Name: "shscap", Value: "1KHLiKZvAvjbY1ziZEHMXawbCEIM6qwjCDm3VYRan/s=", Usage: "shs key"},
 		&cli.StringFlag{Name: "addr", Value: "localhost:8008", Usage: "tcp address of the sbot to connect to (or listen on)"},
 		&cli.StringFlag{Name: "remoteKey", Value: "", Usage: "the remote pubkey you are connecting to (by default the local key)"},
-		&cli.StringFlag{Name: "key,k", Value: defaultKeyFile},
+		&keyFileFlag,
 		&cli.BoolFlag{Name: "verbose,vv", Usage: "print muxrpc packets"},
 	},
 
