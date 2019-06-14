@@ -89,6 +89,13 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	s.closers.addCloser(rootLog.(io.Closer))
 	s.RootLog = rootLog
 
+	getIdx, serveGet, err := indexes.OpenGet(r)
+	if err != nil {
+		return nil, errors.Wrap(err, "sbot: failed to open get index")
+	}
+	goThenLog(ctx, rootLog, "get", serveGet)
+	s.idxGet = getIdx
+
 	uf, _, serveUF, err := multilogs.OpenUserFeeds(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "sbot: failed to open user sublogs")
