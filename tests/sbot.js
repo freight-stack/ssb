@@ -10,7 +10,10 @@ const createSbot = require('ssb-server')
   .use(require('ssb-private'))
   .use(require('ssb-friends'))
   .use(require('ssb-blobs'))
-
+  .use(require('ssb-query'))
+  .use(require('ssb-device-address'))
+  .use(require('ssb-identities'))
+  .use(require('ssb-peer-invites'))
 
 const testName = process.env['TEST_NAME']
 const testBob = process.env['TEST_BOB']

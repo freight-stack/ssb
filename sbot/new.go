@@ -29,6 +29,7 @@ import (
 	"go.cryptoscope.co/ssb/plugins/control"
 	"go.cryptoscope.co/ssb/plugins/get"
 	"go.cryptoscope.co/ssb/plugins/gossip"
+	"go.cryptoscope.co/ssb/plugins/peerinvites"
 	privplug "go.cryptoscope.co/ssb/plugins/private"
 	"go.cryptoscope.co/ssb/plugins/publish"
 	"go.cryptoscope.co/ssb/plugins/rawread"
@@ -193,6 +194,8 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	pmgr := ssb.NewPluginManager()
 	ctrl := ssb.NewPluginManager()
 
+	peerPlug := peerinvites.New(kitlog.With(log, "plugin", "peerInvites"), s, mt, rootLog, s.PublishLog)
+
 	mkHandler := func(conn net.Conn) (muxrpc.Handler, error) {
 		remote, err := ssb.GetFeedRefFromAddr(conn.RemoteAddr())
 		if err != nil {
@@ -202,7 +205,11 @@ func initSbot(s *Sbot) (*Sbot, error) {
 			return ctrl.MakeHandler(conn)
 		}
 
-		if !s.promisc {
+		if err := peerPlug.Authorize(remote); err == nil {
+			return peerPlug.Handler(), nil
+		}
+
+		if !s.promisc { // skip graph auth check
 			start := time.Now()
 			err = auth.Authorize(remote)
 			if s.latency != nil {
