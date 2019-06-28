@@ -26,11 +26,11 @@ func (h hasHandler) HandleCall(ctx context.Context, req *muxrpc.Request, edp mux
 		req.Type = "async"
 	}
 
-	if len(req.Args) != 1 {
+	if len(req.Args()) != 1 {
 		return
 	}
 
-	switch v := req.Args[0].(type) {
+	switch v := req.Args()[0].(type) {
 	case string:
 
 		ref, err := ssb.ParseBlobRef(v)

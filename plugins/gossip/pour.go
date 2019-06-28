@@ -17,12 +17,12 @@ import (
 
 func (h *handler) pourFeed(ctx context.Context, req *muxrpc.Request) error {
 	// check & parse args
-	if len(req.Args) < 1 {
+	if len(req.Args()) < 1 {
 		return errors.New("ssb/message: not enough arguments, expecting feed id")
 	}
-	argMap, ok := req.Args[0].(map[string]interface{})
+	argMap, ok := req.Args()[0].(map[string]interface{})
 	if !ok {
-		return errors.Errorf("ssb/message: not the right map - %T", req.Args[0])
+		return errors.Errorf("ssb/message: not the right map - %T", req.Args()[0])
 	}
 	qry, err := message.NewCreateHistArgsFromMap(argMap)
 	if err != nil {

@@ -24,11 +24,11 @@ func (h wantHandler) HandleCall(ctx context.Context, req *muxrpc.Request, edp mu
 		req.Type = "async"
 	}
 
-	if len(req.Args) != 1 {
+	if len(req.Args()) != 1 {
 		return
 	}
 
-	ref, err := ssb.ParseRef(req.Args[0].(string))
+	ref, err := ssb.ParseRef(req.Args()[0].(string))
 	if err != nil {
 		err = errors.Wrap(err, "error parsing blob reference")
 		checkAndLog(h.log, errors.Wrap(req.Return(ctx, err), "error returning error"))

@@ -28,12 +28,12 @@ func (h getHandler) HandleCall(ctx context.Context, req *muxrpc.Request, edp mux
 		req.Type = "source"
 	}
 
-	if len(req.Args) != 1 {
+	if len(req.Args()) != 1 {
 		return
 	}
 
 	var refStr string
-	switch arg := req.Args[0].(type) {
+	switch arg := req.Args()[0].(type) {
 	case string:
 		refStr = arg
 	case map[string]interface{}:
