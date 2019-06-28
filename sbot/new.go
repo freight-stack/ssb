@@ -195,6 +195,13 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	ctrl := ssb.NewPluginManager()
 
 	peerPlug := peerinvites.New(kitlog.With(log, "plugin", "peerInvites"), s, mt, rootLog, s.PublishLog)
+	pmgr.Register(peerPlug)
+	_, peerServ, err := peerPlug.OpenIndex(r)
+	if err != nil {
+		return nil, errors.Wrap(err, "sbot: failed to open about idx")
+	}
+	// s.closers.addCloser(peerIdx)
+	goThenLog(ctx, rootLog, "peerInvites", peerServ)
 
 	mkHandler := func(conn net.Conn) (muxrpc.Handler, error) {
 		remote, err := ssb.GetFeedRefFromAddr(conn.RemoteAddr())

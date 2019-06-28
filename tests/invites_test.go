@@ -201,8 +201,6 @@ var did = false
 		t.comment(invite)
 		sbot.peerInvites.openInvite(invite, (err, inv_msg, content) => {
 			t.error(err)
-			console.warn(inv_msg)
-			console.warn(content)
 
 			// TODO: check reveal/private?
 
@@ -237,7 +235,7 @@ sbot.on('rpc:connect', (rpc) => {
 				pull.collect(function(err, msgs) {
 					t.error(err, 'query worked')
 					t.equal(4, msgs.length, 'got all the messages')
-	console.warn(msgs[3])
+	console.warn("accept",JSON.stringify(msgs[2]))
 					exit()
 				})
 			)
@@ -256,20 +254,12 @@ sbot.on('rpc:connect', (rpc) => {
 	var fs = require('fs')
 	fs.readFile('invite.txt', 'utf8', (err, invite) => {
 		t.error(err)
-		t.comment(invite)
+		t.comment('cant use again')
 		sbot.peerInvites.openInvite(invite, (err, inv_msg, content) => {
-			t.error(err)
-			console.warn(inv_msg)
-			console.warn(content)
-
+			t.ok(err)
+			t.true(typeof inv_msg === 'undefined')
+			t.true(typeof content === 'undefined')
 			// should not return spent invite!?
-
-			sbot.peerInvites.acceptInvite(invite, (err) => {
-				t.error(err)
-				console.warn(err)
-				exit()
-				
-			})
 		})
 	})
 	`)
