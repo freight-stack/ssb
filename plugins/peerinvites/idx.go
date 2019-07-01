@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"golang.org/x/crypto/nacl/auth"
 
@@ -76,7 +77,7 @@ func (p *Plugin) updateIndex(db *badger.DB) librarian.SinkIndex {
 		}
 		err := json.Unmarshal(msg.Raw, &msgType)
 		if err != nil {
-			p.logger.Log("skipped", msg.Key.Ref())
+			// p.logger.Log("skipped", msg.Key.Ref())
 			return nil
 		}
 
@@ -84,9 +85,11 @@ func (p *Plugin) updateIndex(db *badger.DB) librarian.SinkIndex {
 		case "peer-invite":
 			return p.indexNewInvite(ctx, msg)
 		case "peer-invite/confirm":
-			return p.indexConfirm(ctx, msg)
+			err := p.indexConfirm(ctx, msg)
+			p.logger.Log("confirmed", err)
+			return err
 		default:
-			p.logger.Log("skipped", msg.Key.Ref(), "why", "wrong type", "type", msgType.Content.Type)
+			// p.logger.Log("skipped", msg.Key.Ref(), "why", "wrong type", "type", msgType.Content.Type)
 			return nil // skip
 		}
 	}, p.h.state)
@@ -289,7 +292,7 @@ func (h handler) HandleCall(ctx context.Context, req *muxrpc.Request, edp muxrpc
 		msgArg := bytes.TrimSuffix([]byte(req.RawArgs), []byte("]"))
 		msgArg = bytes.TrimPrefix(msgArg, []byte("["))
 
-		content, err := verifyAcceptMessage(msgArg, guestRef)
+		_, err := verifyAcceptMessage(msgArg, guestRef)
 		if err != nil {
 			req.CloseWithError(errors.Wrap(err, "failed to validate accept msg"))
 			return
@@ -306,23 +309,23 @@ func (h handler) HandleCall(ctx context.Context, req *muxrpc.Request, edp muxrpc
 
 		// legacy contact message
 		// confirm should implicate alice<>bob are friends
-		seq, err = h.pub.Append(struct {
-			Type       string          `json:"type"`
-			Contact    *ssb.FeedRef    `json:"contact"`
-			Following  bool            `json:"following"`
-			AutoFollow bool            `json:"auto"`
-			Receipt    *ssb.MessageRef `json:"peerReceipt"`
-		}{"contact", content.ID, true, true, content.Receipt})
-		if err != nil {
-			req.CloseWithError(errors.Wrap(err, "failed to publish confirm message"))
-			return
-		}
+		// seq, err = h.pub.Append(struct {
+		// 	Type       string          `json:"type"`
+		// 	Contact    *ssb.FeedRef    `json:"contact"`
+		// 	Following  bool            `json:"following"`
+		// 	AutoFollow bool            `json:"auto"`
+		// 	Receipt    *ssb.MessageRef `json:"peerReceipt"`
+		// }{"contact", content.ID, true, true, content.Receipt})
+		// if err != nil {
+		// 	req.CloseWithError(errors.Wrap(err, "failed to publish confirm message"))
+		// 	return
+		// }
 
-		req.Return(ctx, fmt.Sprint("confirmed as:", seq.Seq()))
+		err = req.Return(ctx, fmt.Sprint("confirmed as:", seq.Seq()))
+		fmt.Fprintln(os.Stderr, "invite confirmed", err)
 	default:
 		req.CloseWithError(fmt.Errorf("unknown method"))
 	}
-
 }
 
 //  hash("peer-invites:DEVELOPMENT") //XXX DON'T publish without fixing this!
