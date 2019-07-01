@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cryptix/go/encodedTime"
+
 	"github.com/pkg/errors"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
@@ -182,31 +184,74 @@ type SignedLegacyMessage struct {
 }
 
 type KeyValueRaw struct {
-	Key       *ssb.MessageRef `json:"key"`
-	Value     json.RawMessage `json:"value"`
-	Timestamp int64           `json:"timestamp"`
+	Key       *ssb.MessageRef        `json:"key"`
+	Value     json.RawMessage        `json:"value"`
+	Timestamp *encodedTime.Millisecs `json:"timestamp"`
+}
+
+type KeyValueTyped struct {
+	Key       *ssb.MessageRef        `json:"key"`
+	Value     Typed                  `json:"value"`
+	Timestamp *encodedTime.Millisecs `json:"timestamp"`
+}
+
+type KeyValueContentAsMap struct {
+	Key   *ssb.MessageRef `json:"key"`
+	Value struct {
+		Value
+		Content interface{} `json:"content"`
+	} `json:"value"`
+	Timestamp *encodedTime.Millisecs `json:"timestamp"`
+}
+
+type KeyValueContentRaw struct {
+	Key   *ssb.MessageRef `json:"key"`
+	Value struct {
+		Value
+		Content json.RawMessage `json:"content"`
+	} `json:"value"`
+	Timestamp *encodedTime.Millisecs `json:"timestamp"`
+}
+
+// Value defines the basic metadata fields, ommitting content to be embedded with apropriate types
+type Value struct {
+	Previous  ssb.MessageRef         `json:"previous"`
+	Author    ssb.FeedRef            `json:"author"`
+	Sequence  margaret.BaseSeq       `json:"sequence"`
+	Timestamp *encodedTime.Millisecs `json:"timestamp"`
+	Hash      string                 `json:"hash"`
 }
 
 type Typed struct {
-	Previous  ssb.MessageRef   `json:"previous"`
-	Author    ssb.FeedRef      `json:"author"`
-	Sequence  margaret.BaseSeq `json:"sequence"`
-	Timestamp float64          `json:"timestamp"`
-	Hash      string           `json:"hash"`
-	Content   struct {
+	Value
+	Content struct {
 		Type string `json:"type"`
 	} `json:"content"`
 }
 
-type KeyValueAsMap struct {
-	Key   *ssb.MessageRef `json:"key"`
-	Value struct {
-		Previous  ssb.MessageRef   `json:"previous"`
-		Author    ssb.FeedRef      `json:"author"`
-		Sequence  margaret.BaseSeq `json:"sequence"`
-		Timestamp float64          `json:"timestamp"`
-		Hash      string           `json:"hash"`
-		Content   interface{}      `json:"content"`
-	} `json:"value"`
-	Timestamp int64 `json:"timestamp"`
+type ValuePost struct {
+	Value
+	Content Post `json:"content"`
+}
+
+type Post struct {
+	Type     string          `json:"type"`
+	Text     string          `json:"text"`
+	Root     *ssb.MessageRef `json:"root"`
+	Branch   ssb.MessageRefs `json:"branch"`
+	Mentions []interface{}   `json:"mentions"`
+}
+
+type ValueVote struct {
+	Value
+	Content Vote `json:"content"`
+}
+
+type Vote struct {
+	Type string `json:"type"`
+	Vote struct {
+		Expression string          `json:"expression"`
+		Link       *ssb.MessageRef `json:"link"`
+		Value      int             `json:"value"`
+	} `json:"vote"`
 }

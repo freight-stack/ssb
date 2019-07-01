@@ -1,6 +1,7 @@
 package ssb
 
 import (
+	"bytes"
 	"encoding"
 	"encoding/base64"
 	"fmt"
@@ -238,6 +239,58 @@ func (r *MessageRef) Scan(raw interface{}) error {
 		*r = *mr
 	default:
 		return errors.Errorf("msgRef/Scan: unhandled type %T", raw)
+	}
+	return nil
+}
+
+type MessageRefs []*MessageRef
+
+func (mr *MessageRefs) String() string {
+	var s []string
+	for _, r := range *mr {
+		s = append(s, r.Ref())
+	}
+	return strings.Join(s, ", ")
+}
+
+func (mr *MessageRefs) UnmarshalJSON(text []byte) error {
+	if len(text) == 0 {
+		*mr = nil
+		return nil
+	}
+
+	if bytes.Equal([]byte("[]"), text) {
+		*mr = nil
+		return nil
+	}
+
+	if bytes.HasPrefix(text, []byte("[")) && bytes.HasSuffix(text, []byte("]")) {
+
+		elems := bytes.Split(text[1:len(text)-1], []byte(","))
+		newArr := make([]*MessageRef, len(elems))
+
+		for i, e := range elems {
+			var err error
+			r := strings.TrimSpace(string(e))
+			r = r[1 : len(r)-1] // remove quotes
+			newArr[i], err = ParseMessageRef(r)
+			if err != nil {
+				return errors.Wrapf(err, "messageRefs %d unmarshal failed", i)
+			}
+		}
+
+		*mr = newArr
+
+	} else {
+		newArr := make([]*MessageRef, 1)
+
+		var err error
+		newArr[0], err = ParseMessageRef(string(text[1 : len(text)-1]))
+		if err != nil {
+			return errors.Wrap(err, "messageRefs single unmarshal failed")
+		}
+
+		*mr = newArr
 	}
 	return nil
 }

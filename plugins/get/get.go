@@ -2,6 +2,7 @@ package get
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -97,9 +98,9 @@ func (h handler) HandleCall(ctx context.Context, req *muxrpc.Request, edp muxrpc
 			retMsg = msg.Raw
 		}
 	*/
-	err = req.Return(ctx, msg.Raw)
+	err = req.Return(ctx, json.RawMessage(msg.Raw))
 	if err != nil {
-		fmt.Println("get: failed to return message:", err)
 	}
+	fmt.Println("get: failed? to return message:", err)
 
 }

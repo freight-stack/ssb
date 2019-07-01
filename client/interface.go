@@ -22,7 +22,8 @@ type Interface interface {
 	// PrivateRead() (luigi.Source, error)
 
 	// MessagesByTypes(string) (luigi.Source, error)
-	CreateLogStream(message.CreateHistArgs) (luigi.Source, error)
+	// TODO: move as param into CreateHistArgs but also split that up into individual types with the right members
+	CreateLogStream(message.CreateHistArgs, interface{}) (luigi.Source, error)
 	CreateHistoryStream(opts message.CreateHistArgs, as interface{}) (luigi.Source, error)
 	Tangles(ssb.MessageRef, message.CreateHistArgs) (luigi.Source, error)
 

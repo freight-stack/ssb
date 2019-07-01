@@ -168,9 +168,9 @@ func (c client) Publish(v interface{}) (*ssb.MessageRef, error) {
 	return msgRef, errors.Wrap(err, "failed to parse new message reference")
 }
 
-func (c client) CreateLogStream(opts message.CreateHistArgs) (luigi.Source, error) {
+func (c client) CreateLogStream(opts message.CreateHistArgs, as interface{}) (luigi.Source, error) {
 	opts.Keys = true
-	src, err := c.handler.Source(c.rootCtx, message.KeyValueRaw{}, muxrpc.Method{"createLogStream"}, opts)
+	src, err := c.handler.Source(c.rootCtx, as, muxrpc.Method{"createLogStream"}, opts)
 	return src, errors.Wrap(err, "failed to create stream")
 }
 
@@ -192,7 +192,7 @@ func (c client) Tangles(root ssb.MessageRef, o message.CreateHistArgs) (luigi.So
 	opt.CreateHistArgs = o
 	opt.Keys = true
 	opt.Root = root.Ref()
-	src, err := c.handler.Source(c.rootCtx, message.KeyValueAsMap{}, muxrpc.Method{"tangles"}, opt)
+	src, err := c.handler.Source(c.rootCtx, message.KeyValueContentRaw{}, muxrpc.Method{"tangles"}, opt)
 	return src, errors.Wrap(err, "failed to create stream")
 }
 
