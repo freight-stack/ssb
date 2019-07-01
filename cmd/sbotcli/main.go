@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
@@ -21,9 +20,6 @@ import (
 	goon "github.com/shurcooL/go-goon"
 	"go.cryptoscope.co/muxrpc"
 	"go.cryptoscope.co/muxrpc/debug"
-	"go.cryptoscope.co/netwrap"
-	"go.cryptoscope.co/secretstream"
-	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/message"
 	cli "gopkg.in/urfave/cli.v2"
 )
@@ -99,6 +95,7 @@ func todo(ctx *cli.Context) error {
 }
 
 func initClient(ctx *cli.Context) error {
+	/* network mode
 	localKey, err := ssb.LoadKeyPair(ctx.String("key"))
 	if err != nil {
 		return err
@@ -133,12 +130,12 @@ func initClient(ctx *cli.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "error dialing")
 	}
-	/* coming soon:
-	conn, err := net.Dial("unix", "/home/cryptix/.ssb/socket")
+	*/
+
+	conn, err := net.Dial("unix", "/home/cryptix/.ssb-go/socket")
 	if err != nil {
 		return errors.Wrap(err, "error dialing unix sock")
 	}
-	*/
 	var rwc io.ReadWriteCloser = conn
 	// logs every muxrpc packet
 	if ctx.Bool("verbose") {
