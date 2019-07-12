@@ -1,11 +1,7 @@
 package multilogs
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"sync"
 	"time"
@@ -26,7 +22,6 @@ type publishLog struct {
 	key     ssb.KeyPair
 	hmac    *[32]byte
 
-	offchain     bool
 	setTimestamp bool
 }
 
@@ -67,33 +62,7 @@ func (pl *publishLog) Append(val interface{}) (margaret.Seq, error) {
 		newMsg.Timestamp = time.Now().UnixNano() / 1000000
 	}
 
-	if pl.offchain {
-		buf := new(bytes.Buffer)
-		h := sha256.New()
-
-		w := io.MultiWriter(buf, h)
-		switch tv := val.(type) {
-		case string:
-			fmt.Fprint(w, tv)
-		case []byte:
-			w.Write(tv)
-		default:
-			enc := json.NewEncoder(w)
-			if err := enc.Encode(val); err != nil {
-				return nil, errors.Wrap(err, "publishLog: failed to encode offchain msg")
-			}
-		}
-
-		or := &ssb.OffchainMessageRef{
-			Hash: h.Sum(nil),
-			Algo: ssb.RefAlgoSHA256,
-		}
-
-		stored.Offchain = buf.Bytes()
-		newMsg.Content = or.Ref()
-	} else {
-		newMsg.Content = val
-	}
+	newMsg.Content = val
 
 	// current state of the local sig-chain
 	currSeq, err := pl.Seq().Value()
@@ -184,13 +153,6 @@ func SetHMACKey(hmackey []byte) PublishOption {
 			return fmt.Errorf("hmac key of wrong length:%d", n)
 		}
 		pl.hmac = &hmacSec
-		return nil
-	}
-}
-
-func EnableOffchain(yes bool) PublishOption {
-	return func(pl *publishLog) error {
-		pl.offchain = yes
 		return nil
 	}
 }
