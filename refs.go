@@ -19,7 +19,8 @@ import (
 
 const (
 	RefAlgoSHA256  = "sha256"
-	RefAlgoEd25519 = "ed25519"
+	RefAlgoEd25519 = "ed25519" // ssb v1 (legacy encoding)
+	RefAlgoProto   = "proto"   // new protochain
 )
 
 // Common errors for invalid references
@@ -82,16 +83,21 @@ func ParseRef(str string) (Ref, error) {
 
 	switch str[0:1] {
 	case "@":
-		if split[1] != RefAlgoEd25519 {
+		var algo string
+		switch split[1] {
+		case RefAlgoEd25519:
+			algo = RefAlgoEd25519
+		case RefAlgoProto:
+			algo = RefAlgoProto
+		default:
 			return nil, ErrInvalidRefAlgo
 		}
 		if n := len(raw); n != 32 {
 			return nil, NewFeedRefLenError(n)
 		}
 		return &FeedRef{
-			ID:       raw,
-			Algo:     RefAlgoEd25519,
-			Offchain: strings.HasSuffix(str, ".offchain"),
+			ID:   raw,
+			Algo: algo,
 		}, nil
 	case "%":
 		if split[1] != RefAlgoSHA256 {
@@ -236,8 +242,6 @@ func ParseOffchainMessageRef(s string) (*OffchainMessageRef, error) {
 type FeedRef struct {
 	ID   []byte
 	Algo string
-
-	Offchain bool // denoets an feed with offchain encoded messages
 }
 
 func NewFeedRefEd25519(b []byte) (*FeedRef, error) {
@@ -265,11 +269,7 @@ func (ref FeedRef) StoredAddr() librarian.Addr {
 }
 
 func (ref FeedRef) Ref() string {
-	s := fmt.Sprintf("@%s.%s", base64.StdEncoding.EncodeToString(ref.ID), ref.Algo)
-	if ref.Offchain {
-		s += ".offchain"
-	}
-	return s
+	return fmt.Sprintf("@%s.%s", base64.StdEncoding.EncodeToString(ref.ID), ref.Algo)
 }
 
 func (ref FeedRef) Equal(b *FeedRef) bool {
@@ -301,6 +301,7 @@ func (fr *FeedRef) UnmarshalText(text []byte) error {
 func (r *FeedRef) Scan(raw interface{}) error {
 	switch v := raw.(type) {
 	// TODO: add an extra byte/flag bits to denote algo and types
+	// see protochain BinaryRef
 	// case []byte:
 	// 	if len(v) != 32 {
 	// 		return errors.Errorf("feedRef/Scan: wrong length: %d", len(v))

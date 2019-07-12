@@ -29,10 +29,9 @@ func TestParseRef(t *testing.T) {
 			Algo: RefAlgoEd25519,
 		}},
 
-		{"@ye+QM09iPcDJD6YvQYjoQc7sLF/IFhmNbEqgdzQo3lQ=.ed25519.offchain", nil, &FeedRef{
-			ID:       []byte{201, 239, 144, 51, 79, 98, 61, 192, 201, 15, 166, 47, 65, 136, 232, 65, 206, 236, 44, 95, 200, 22, 25, 141, 108, 74, 160, 119, 52, 40, 222, 84},
-			Algo:     RefAlgoEd25519,
-			Offchain: true,
+		{"@ye+QM09iPcDJD6YvQYjoQc7sLF/IFhmNbEqgdzQo3lQ=.proto", nil, &FeedRef{
+			ID:   []byte{201, 239, 144, 51, 79, 98, 61, 192, 201, 15, 166, 47, 65, 136, 232, 65, 206, 236, 44, 95, 200, 22, 25, 141, 108, 74, 160, 119, 52, 40, 222, 84},
+			Algo: RefAlgoProto,
 		}},
 
 		{"&84SSLNv5YdDVTdSzN2V1gzY5ze4lj6tYFkNyT+P28Qs=.sha256", nil, &BlobRef{
