@@ -34,7 +34,7 @@ func NewKeyPair(r io.Reader) (*KeyPair, error) {
 	}
 
 	keyPair := KeyPair{
-		Id:   &FeedRef{id: kp.Public[:], Algo: "ed25519"},
+		Id:   &FeedRef{ID: kp.Public[:], Algo: "ed25519"},
 		Pair: *kp,
 	}
 	return &keyPair, nil

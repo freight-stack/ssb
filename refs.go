@@ -89,7 +89,7 @@ func ParseRef(str string) (Ref, error) {
 			return nil, NewFeedRefLenError(n)
 		}
 		return &FeedRef{
-			id:       raw,
+			ID:       raw,
 			Algo:     RefAlgoEd25519,
 			Offchain: strings.HasSuffix(str, ".offchain"),
 		}, nil
@@ -234,7 +234,7 @@ func ParseOffchainMessageRef(s string) (*OffchainMessageRef, error) {
 
 // FeedRef defines a publickey as ID with a specific algorithm (currently only ed25519)
 type FeedRef struct {
-	id   []byte
+	ID   []byte
 	Algo string
 
 	Offchain bool // denoets an feed with offchain encoded messages
@@ -246,13 +246,13 @@ func NewFeedRefEd25519(b []byte) (*FeedRef, error) {
 	if len(b) != 32 {
 		return nil, ErrInvalidRef
 	}
-	r.id = make([]byte, 32)
-	copy(r.id, b[:])
+	r.ID = make([]byte, 32)
+	copy(r.ID, b[:])
 	return &r, nil
 }
 
 func (ref FeedRef) PubKey() ed25519.PublicKey {
-	return ref.id
+	return ref.ID
 }
 
 // StoredAddr returns the key under which this ref is stored in the multilog system
@@ -265,7 +265,7 @@ func (ref FeedRef) StoredAddr() librarian.Addr {
 }
 
 func (ref FeedRef) Ref() string {
-	s := fmt.Sprintf("@%s.%s", base64.StdEncoding.EncodeToString(ref.id), ref.Algo)
+	s := fmt.Sprintf("@%s.%s", base64.StdEncoding.EncodeToString(ref.ID), ref.Algo)
 	if ref.Offchain {
 		s += ".offchain"
 	}
@@ -273,7 +273,7 @@ func (ref FeedRef) Ref() string {
 }
 
 func (ref FeedRef) Equal(b *FeedRef) bool {
-	return bytes.Equal(ref.id, b.id)
+	return bytes.Equal(ref.ID, b.ID)
 }
 
 var (
