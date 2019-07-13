@@ -43,11 +43,6 @@ func TestParseRef(t *testing.T) {
 			Hash: []byte{218, 48, 235, 172, 145, 30, 27, 179, 208, 112, 34, 220, 138, 194, 18, 169, 170, 204, 110, 131, 105, 159, 12, 159, 196, 185, 240, 83, 88, 163, 58, 55},
 			Algo: RefAlgoSHA256,
 		}},
-
-		{"2jDrrJEeG7PQcCLcisISqarMboNpnwyfxLnwU1ijOjc=.sha256.offchain", nil, &OffchainMessageRef{
-			Hash: []byte{218, 48, 235, 172, 145, 30, 27, 179, 208, 112, 34, 220, 138, 194, 18, 169, 170, 204, 110, 131, 105, 159, 12, 159, 196, 185, 240, 83, 88, 163, 58, 55},
-			Algo: RefAlgoSHA256,
-		}},
 	}
 	for i, tc := range tcases {
 		r, err := ParseRef(tc.ref)

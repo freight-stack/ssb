@@ -54,20 +54,6 @@ func ParseRef(str string) (Ref, error) {
 		return nil, ErrInvalidRef
 	}
 
-	if strings.HasSuffix(str, offchainMsgRefSuffix) {
-		raw, err := base64.StdEncoding.DecodeString(strings.TrimSuffix(str, offchainMsgRefSuffix))
-		if err != nil {
-			return nil, errors.Wrapf(ErrInvalidHash, "ocm b64 decode failed (%s)", err)
-		}
-		if n := len(raw); n != 32 {
-			return nil, NewHashLenError(n)
-		}
-		return &OffchainMessageRef{
-			Hash: raw,
-			Algo: RefAlgoSHA256,
-		}, nil
-	}
-
 	split := strings.Split(str[1:], ".")
 	if len(split) < 2 {
 		return nil, ErrInvalidRef
@@ -193,47 +179,6 @@ func ParseMessageRef(s string) (*MessageRef, error) {
 	newRef, ok := ref.(*MessageRef)
 	if !ok {
 		return nil, errors.Errorf("messageRef: not a message! %T", ref)
-	}
-	return newRef, nil
-}
-
-const offchainMsgRefSuffix = ".sha256.offchain"
-
-type OffchainMessageRef struct {
-	Hash []byte
-	Algo string
-}
-
-func (ref OffchainMessageRef) Ref() string {
-	return fmt.Sprintf("%s.%s.offchain", base64.StdEncoding.EncodeToString(ref.Hash), ref.Algo)
-}
-
-var (
-	_ encoding.TextMarshaler   = (*OffchainMessageRef)(nil)
-	_ encoding.TextUnmarshaler = (*OffchainMessageRef)(nil)
-)
-
-func (ocm *OffchainMessageRef) MarshalText() ([]byte, error) {
-	return []byte(ocm.Ref()), nil
-}
-
-func (ocm *OffchainMessageRef) UnmarshalText(text []byte) error {
-	newRef, err := ParseOffchainMessageRef(string(text))
-	if err != nil {
-		return err
-	}
-	*ocm = *newRef
-	return nil
-}
-
-func ParseOffchainMessageRef(s string) (*OffchainMessageRef, error) {
-	ref, err := ParseRef(s)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse OCM ref")
-	}
-	newRef, ok := ref.(*OffchainMessageRef)
-	if !ok {
-		return nil, errors.Errorf("parse OffchainMessageRef: not an OCM! %T", ref)
 	}
 	return newRef, nil
 }
