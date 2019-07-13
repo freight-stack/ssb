@@ -83,7 +83,7 @@ func (h *handler) pourFeed(ctx context.Context, req *muxrpc.Request) error {
 			if !ok {
 				return errors.Errorf("b4pour: expected []byte - got %T", v)
 			}
-			if msg.Message.Author.Offchain {
+			if msg.Message.Author.Algo == ssb.RefAlgoProto {
 				err := req.Stream.Pour(ctx, codec.Body(msg.Message.Offchain))
 				if err != nil {
 					return errors.Wrap(err, "b4pour: offchain send faild")

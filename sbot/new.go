@@ -160,7 +160,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	if s.signHMACsecret != nil {
 		pubopts = append(pubopts, multilogs.SetHMACKey(s.signHMACsecret))
 	}
-	if s.KeyPair.Id.Offchain {
+	if s.KeyPair.Id.Algo == ssb.RefAlgoProto {
 		pubopts = append(pubopts, multilogs.EnableOffchain(true))
 	}
 	publishLog, err := multilogs.OpenPublishLog(s.RootLog, s.UserFeeds, *s.KeyPair, pubopts...)

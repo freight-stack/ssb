@@ -3,10 +3,7 @@ package gossip
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -192,7 +189,7 @@ func (g *handler) fetchFeed(ctx context.Context, fr *ssb.FeedRef, edp muxrpc.End
 	}
 	// info.Log("debug", "called createHistoryStream", "qry", fmt.Sprintf("%v", q))
 	var snk luigi.Sink
-	if fr.Offchain {
+	if fr.Algo == ssb.RefAlgoProto {
 		snk = NewOffchainDrain(fr, latestSeq, latestMsg, g.RootLog, g.hmacSec)
 	} else {
 		snk = NewLegacyDrain(fr, latestSeq, latestMsg, g.RootLog, g.hmacSec)
@@ -278,6 +275,13 @@ func (ld legacyDrain) Close() error {
 }
 
 func NewOffchainDrain(who *ssb.FeedRef, start margaret.Seq, lastMsg message.StoredMessage, rl margaret.Log, hmac HMACSecret) luigi.Sink {
+	return luigi.FuncSink(func(_ context.Context, val interface{}, err error) error {
+		return errors.Errorf("obsoleted by protochain")
+	})
+}
+
+/* TODO: make this ProtoDrain
+func NewOffchainDrain(who *ssb.FeedRef, start margaret.Seq, lastMsg message.StoredMessage, rl margaret.Log, hmac HMACSecret) luigi.Sink {
 	ld := legacyDrain{
 		who:       who,
 		latestSeq: start,
@@ -351,3 +355,4 @@ func (od *offchainDrain) Pour(ctx context.Context, v interface{}) error {
 	od.consumed++
 	return nil
 }
+*/
