@@ -123,7 +123,7 @@ func OpenAbout(log kitlog.Logger, r repo.Interface) (AboutStore, repo.ServeFunc,
 }
 
 func updateAboutMessage(ctx context.Context, seq margaret.Seq, val interface{}, idx librarian.SetterIndex) error {
-	msg, ok := val.(message.StoredMessage)
+	msg, ok := val.(message.Abstract)
 	if !ok {
 		if margaret.IsErrNulled(val.(error)) {
 			return nil
@@ -131,14 +131,8 @@ func updateAboutMessage(ctx context.Context, seq margaret.Seq, val interface{}, 
 		return fmt.Errorf("about(%d): wrong msgT: %T", seq, val)
 	}
 
-	var dmsg message.DeserializedMessage
-	err := json.Unmarshal(msg.Raw, &dmsg)
-	if err != nil {
-		return errors.Wrap(err, "db/idx about: first json unmarshal failed")
-	}
-
 	var aboutMSG ssb.About
-	err = json.Unmarshal(dmsg.Content, &aboutMSG)
+	err := json.Unmarshal(msg.GetContent(), &aboutMSG)
 	if err != nil {
 		if ssb.IsMessageUnusable(err) {
 			return nil
@@ -150,7 +144,7 @@ func updateAboutMessage(ctx context.Context, seq margaret.Seq, val interface{}, 
 	// about:from:field
 	addr := aboutMSG.About.StoredAddr()
 	addr += ":"
-	addr += dmsg.Author.StoredAddr()
+	addr += msg.GetAuthor().StoredAddr()
 	addr += ":"
 	if aboutMSG.Name != "" {
 		err = idx.Set(ctx, addr+"name", aboutMSG.Name)

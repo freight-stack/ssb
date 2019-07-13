@@ -8,22 +8,22 @@ import (
 	"testing"
 	"time"
 
-	"go.cryptoscope.co/luigi"
-
 	"github.com/cryptix/go/logging/logtest"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.cryptoscope.co/luigi"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/internal/mutil"
 	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/private"
+	"go.mindeco.de/protochain"
 )
 
 func TestOffchainSync(t *testing.T) {
 	r := require.New(t)
-	a := assert.New(t)
+	// a := assert.New(t)
 	ctx := context.TODO()
 
 	os.RemoveAll("testrun")
@@ -47,7 +47,7 @@ func TestOffchainSync(t *testing.T) {
 	// bob is the otc one
 	bobsKey, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	bobsKey.Id.Offchain = true
+	bobsKey.Id.Algo = ssb.RefAlgoProto
 
 	bobLog, _ := logtest.KitLogger("bob", t)
 	bob, err := New(
@@ -114,10 +114,11 @@ func TestOffchainSync(t *testing.T) {
 		} else if err != nil {
 			r.NoError(err)
 		}
-		msg := v.(message.StoredMessage)
+		msg, ok := v.(protochain.StoredProtoMessage)
+		r.True(ok)
 		t.Log(msg)
-		a.True(msg.Author.Offchain)
-		a.NotEmpty(msg.Offchain)
+		// a.True(msg.Author.Offchain)
+		// a.NotEmpty(msg.Offchain)
 	}
 
 	ali.Shutdown()
@@ -154,7 +155,7 @@ func TestOffchainPrivate(t *testing.T) {
 	// bob is the otc one
 	bobsKey, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	bobsKey.Id.Offchain = true
+	bobsKey.Id.Algo = ssb.RefAlgoProto
 
 	bobLog, _ := logtest.KitLogger("bob", t)
 	bob, err := New(
@@ -227,15 +228,16 @@ func TestOffchainPrivate(t *testing.T) {
 		} else if err != nil {
 			r.NoError(err)
 		}
-		msg := v.(message.StoredMessage)
+		msg, ok := v.(message.Abstract)
+		r.True(ok)
 		t.Log(msg)
-		a.True(msg.Author.Offchain)
-		a.NotEmpty(msg.Offchain)
+		// a.True(msg.Author.Offchain)
+		// a.NotEmpty(msg.Offchain)
 		if i == 0 {
 			continue // contact msg
 		}
 
-		oc := string(msg.Offchain)
+		oc := string(msg.GetContent())
 		t.Log(oc)
 		unboxed, err := private.Unbox(ali.KeyPair, oc)
 		a.NoError(err)

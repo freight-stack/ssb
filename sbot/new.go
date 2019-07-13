@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"go.mindeco.de/protochain"
+
 	"go.cryptoscope.co/librarian"
 	"go.cryptoscope.co/netwrap"
 	"go.cryptoscope.co/secretstream"
@@ -156,18 +158,21 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	id := s.KeyPair.Id
 	auth := s.GraphBuilder.Authorizer(id, int(s.hopCount))
 
-	var pubopts []multilogs.PublishOption
-	if s.signHMACsecret != nil {
-		pubopts = append(pubopts, multilogs.SetHMACKey(s.signHMACsecret))
-	}
 	if s.KeyPair.Id.Algo == ssb.RefAlgoProto {
-		pubopts = append(pubopts, multilogs.EnableOffchain(true))
+		s.PublishLog, err = protochain.NewPublisher(s.RootLog, s.UserFeeds, s.KeyPair) // TODO: s.signHMACsecret
+		if err != nil {
+			return nil, errors.Wrap(err, "sbot: failed to create legacy publish log")
+		}
+	} else {
+		var pubopts []multilogs.PublishOption
+		if s.signHMACsecret != nil {
+			pubopts = append(pubopts, multilogs.SetHMACKey(s.signHMACsecret))
+		}
+		s.PublishLog, err = multilogs.OpenPublishLog(s.RootLog, s.UserFeeds, *s.KeyPair, pubopts...)
+		if err != nil {
+			return nil, errors.Wrap(err, "sbot: failed to create legacy publish log")
+		}
 	}
-	publishLog, err := multilogs.OpenPublishLog(s.RootLog, s.UserFeeds, *s.KeyPair, pubopts...)
-	if err != nil {
-		return nil, errors.Wrap(err, "sbot: failed to create publish log")
-	}
-	s.PublishLog = publishLog
 
 	pl, _, servePrivs, err := multilogs.OpenPrivateRead(kitlog.With(log, "module", "privLogs"), r, s.KeyPair)
 	if err != nil {

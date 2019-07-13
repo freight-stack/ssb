@@ -114,8 +114,7 @@ func (pl *publishLog) Append(val interface{}) (margaret.Seq, error) {
 
 // OpenPublishLog needs the base datastore (root or receive log - offset2)
 // and the userfeeds with all the sublog and uses the passed keypair to find the corresponding user feed
-// the returned sink is then used to create new messages.
-// warning: it is assumed that the
+// the returned log's append function is then used to create new messages.
 // these messages are constructed in the legacy SSB way: The poured object is JSON v8-like pretty printed and then NaCL signed,
 // then it's pretty printed again (now with the signature inside the message) to construct it's SHA256 hash,
 // which is used to reference it (by replys and it's previous)
