@@ -12,6 +12,7 @@ import (
 	"go.cryptoscope.co/luigi"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/muxrpc"
+	"go.cryptoscope.co/muxrpc/codec"
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/graph"
 	"go.cryptoscope.co/ssb/message"
@@ -134,6 +135,7 @@ func (g *handler) fetchFeed(ctx context.Context, fr *ssb.FeedRef, edp muxrpc.End
 	)
 	switch v := latest.(type) {
 	case librarian.UnsetValue:
+		// nothing stored, fetch from zero
 	case margaret.BaseSeq:
 		latestSeq = v + 1 // sublog is 0-init while ssb chains start at 1
 		if v >= 0 {
@@ -181,18 +183,19 @@ func (g *handler) fetchFeed(ctx context.Context, fr *ssb.FeedRef, edp muxrpc.End
 		}
 	}()
 
-	method := muxrpc.Method{"createHistoryStream"}
-
-	source, err := edp.Source(toLong, message.RawSignedMessage{}, method, q)
-	if err != nil {
-		return errors.Wrapf(err, "fetchFeed(%s:%d) failed to create source", fr.Ref(), latestSeq)
-	}
-	// info.Log("debug", "called createHistoryStream", "qry", fmt.Sprintf("%v", q))
+	var source luigi.Source
 	var snk luigi.Sink
 	if fr.Algo == ssb.RefAlgoProto {
+		source, err = edp.Source(toLong, codec.Body{}, muxrpc.Method{"createProtoStream"}, q)
+
 		snk = NewOffchainDrain(fr, latestSeq, latestMsg, g.RootLog, g.hmacSec)
 	} else {
+		source, err = edp.Source(toLong, message.RawSignedMessage{}, muxrpc.Method{"createHistoryStream"}, q)
+
 		snk = NewLegacyDrain(fr, latestSeq, latestMsg, g.RootLog, g.hmacSec)
+	}
+	if err != nil {
+		return errors.Wrapf(err, "fetchFeed(%s:%d) failed to create source", fr.Ref(), latestSeq)
 	}
 
 	err = luigi.Pump(toLong, snk, source)

@@ -44,7 +44,7 @@ func TestOffchainSync(t *testing.T) {
 		close(aliErrc)
 	}()
 
-	// bob is the otc one
+	// bob is the protochain one
 	bobsKey, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
 	bobsKey.Id.Algo = ssb.RefAlgoProto
@@ -90,18 +90,28 @@ func TestOffchainSync(t *testing.T) {
 		r.Equal(margaret.BaseSeq(i+1), seq)
 	}
 
+	// sanity, check bob has his shit together
+	bobsOwnLog, err := bob.UserFeeds.Get(bob.KeyPair.Id.StoredAddr())
+	r.NoError(err)
+
+	seqv, err := bobsOwnLog.Seq().Value()
+	r.NoError(err)
+	r.Equal(margaret.BaseSeq(9), seqv, "bob doesn't have his own log!")
+
 	// dial
 	err = bob.Network.Connect(ctx, ali.Network.GetListenAddr())
 	r.NoError(err)
 
-	time.Sleep(3 * time.Second)
-
+	// give time to sync
+	time.Sleep(5 * time.Second)
+	// be done
 	ali.Network.GetConnTracker().CloseAll()
 
+	// check that bobs messages got to ali
 	bosLogAtAli, err := ali.UserFeeds.Get(bob.KeyPair.Id.StoredAddr())
 	r.NoError(err)
 
-	seqv, err := bosLogAtAli.Seq().Value()
+	seqv, err = bosLogAtAli.Seq().Value()
 	r.NoError(err)
 	r.Equal(margaret.BaseSeq(9), seqv)
 
@@ -114,7 +124,7 @@ func TestOffchainSync(t *testing.T) {
 		} else if err != nil {
 			r.NoError(err)
 		}
-		msg, ok := v.(protochain.StoredProtoMessage)
+		msg, ok := v.(*protochain.MultiMessage)
 		r.True(ok)
 		t.Log(msg)
 		// a.True(msg.Author.Offchain)

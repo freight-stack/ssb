@@ -10,6 +10,7 @@ import (
 // Abstract allows accessing message aspects without known the feed type
 // TODO: would prefer to strip the Get previs of these but it would conflict with legacy StoredMessage's fields
 type Abstract interface {
+	GetKey() *ssb.MessageRef
 	// GetPrevious() *ssb.MessageRef
 	// GetSequence() margaret.Seq
 	// GetTimestamp() time.Time?
@@ -18,6 +19,10 @@ type Abstract interface {
 }
 
 var _ Abstract = (*StoredMessage)(nil)
+
+func (sm StoredMessage) GetKey() *ssb.MessageRef {
+	return sm.Key
+}
 
 func (sm StoredMessage) GetAuthor() *ssb.FeedRef {
 	return sm.Author
