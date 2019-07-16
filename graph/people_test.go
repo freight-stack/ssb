@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.cryptoscope.co/ssb"
 )
 
 type PeopleOp interface {
@@ -26,6 +27,25 @@ type PeopleOpNewPeer struct {
 
 func (op PeopleOpNewPeer) Op(state *testState) error {
 	publisher := newPublisher(state.t, state.store.root, state.store.userLogs)
+	state.peers[op.name] = publisher
+	ref := string(publisher.key.Id.StoredAddr())
+	state.refToName[ref] = op.name
+	state.t.Logf("creted %s as %s", op.name, ref)
+	return nil
+}
+
+type PeopleOpNewPeerProto struct {
+	name string
+}
+
+func (op PeopleOpNewPeerProto) Op(state *testState) error {
+	kp, err := ssb.NewKeyPair(nil)
+	if err != nil {
+		state.t.Fatal(err)
+	}
+	kp.Id.Algo = ssb.RefAlgoProto
+
+	publisher := newPublisherWithKP(state.t, state.store.root, state.store.userLogs, kp)
 	state.peers[op.name] = publisher
 	ref := string(publisher.key.Id.StoredAddr())
 	state.refToName[ref] = op.name
@@ -382,6 +402,37 @@ func TestPeople(t *testing.T) {
 			asserts: []PeopleAssertMaker{
 				PeopleAssertFollows("alice", "bob", false),
 				PeopleAssertBlocks("alice", "bob", false),
+			},
+		},
+
+		{
+			name: "feedTypes",
+			ops: []PeopleOp{
+				PeopleOpNewPeer{"alice"},
+				PeopleOpNewPeerProto{"piet"},
+				PeopleOpNewPeer{"claire"},
+				PeopleOpNewPeerProto{"pew"},
+				PeopleOpFollow{"alice", "piet"},
+				PeopleOpFollow{"piet", "claire"},
+				PeopleOpFollow{"piet", "pew"},
+				PeopleOpFollow{"pew", "piet"},
+			},
+			asserts: []PeopleAssertMaker{
+				PeopleAssertFollows("alice", "piet", true),
+				PeopleAssertFollows("piet", "alice", false),
+				PeopleAssertFollows("piet", "claire", true),
+
+				PeopleAssertFollows("piet", "pew", true),
+				PeopleAssertFollows("pew", "piet", true),
+
+				PeopleAssertAuthorize("alice", "piet", 0, true),
+				PeopleAssertAuthorize("piet", "alice", 0, false),
+				PeopleAssertAuthorize("piet", "claire", 0, true),
+				PeopleAssertAuthorize("piet", "pew", 0, true),
+				PeopleAssertAuthorize("pew", "piet", 0, true),
+
+				PeopleAssertHops("alice", 0, "alice", "piet"),
+				PeopleAssertHops("piet", 0, "piet", "claire", "pew"),
 			},
 		},
 	}

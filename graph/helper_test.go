@@ -19,13 +19,18 @@ type publisher struct {
 }
 
 func newPublisher(t *testing.T, root margaret.Log, users multilog.MultiLog) *publisher {
+	r := require.New(t)
+	kp, err := ssb.NewKeyPair(nil)
+	r.NoError(err)
+	return newPublisherWithKP(t, root, users, kp)
+}
+
+func newPublisherWithKP(t *testing.T, root margaret.Log, users multilog.MultiLog, kp *ssb.KeyPair) *publisher {
 	p := &publisher{}
 	p.r = require.New(t)
+	p.key = kp
 
 	var err error
-	p.key, err = ssb.NewKeyPair(nil)
-	p.r.NoError(err)
-
 	p.publish, err = multilogs.OpenPublishLog(root, users, *p.key)
 	p.r.NoError(err)
 	return p
