@@ -16,6 +16,7 @@ import (
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/graph"
 	"go.cryptoscope.co/ssb/message"
+	"go.mindeco.de/protochain"
 )
 
 type ErrWrongSequence struct {
@@ -147,11 +148,17 @@ func (g *handler) fetchFeed(ctx context.Context, fr *ssb.FeedRef, edp muxrpc.End
 			if err != nil {
 				return errors.Wrapf(err, "failed retreive stored message")
 			}
-			var ok bool
-			latestMsg, ok = msgV.(message.StoredMessage)
+
+			mm, ok := msgV.(protochain.MultiMessage)
 			if !ok {
-				return errors.Errorf("wrong message type. expected %T - got %T", latestMsg, v)
+				return errors.Errorf("fetch: wrong message type. expected %T - got %T", latestMsg, msgV)
 			}
+			lv, err := mm.ByType(protochain.Legacy)
+			if err != nil {
+				return errors.Wrapf(err, "failed retreive legacy message")
+			}
+
+			latestMsg = *(lv.(*message.StoredMessage))
 
 			if latestMsg.Sequence != latestSeq {
 				return &ErrWrongSequence{Stored: latestMsg.Sequence, Indexed: latestSeq, Ref: fr}
@@ -186,7 +193,7 @@ func (g *handler) fetchFeed(ctx context.Context, fr *ssb.FeedRef, edp muxrpc.End
 	var source luigi.Source
 	var snk luigi.Sink
 	if fr.Algo == ssb.RefAlgoProto {
-		source, err = edp.Source(toLong, codec.Body{}, muxrpc.Method{"createProtoStream"}, q)
+		source, err = edp.Source(toLong, codec.Body{}, muxrpc.Method{"protochain", "createHistoryStream"}, q)
 
 		snk = NewOffchainDrain(fr, latestSeq, latestMsg, g.RootLog, g.hmacSec)
 	} else {
@@ -227,7 +234,9 @@ func (ld *legacyDrain) Pour(ctx context.Context, v interface{}) error {
 		return err
 	}
 
-	_, err = ld.rootLog.Append(*nextMsg)
+	mm := protochain.NewMultiMessageFromLegacy(nextMsg)
+
+	_, err = ld.rootLog.Append(mm)
 	if err != nil {
 		return errors.Wrapf(err, "fetchFeed(%s): failed to append message(%s:%d)", ld.who.Ref(), nextMsg.Key.Ref(), nextMsg.Sequence)
 	}

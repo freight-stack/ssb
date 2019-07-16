@@ -202,12 +202,12 @@ func makeCompareSink(texpected []string, rootLog margaret.Log) (luigi.FuncSink, 
 
 		m := make(map[string]interface{})
 
-		err = json.Unmarshal(v.(message.StoredMessage).Raw, &m)
+		abs := v.(message.Abstract)
+		err = json.Unmarshal(abs.GetContent(), &m)
 		if err != nil {
 			return errors.Errorf("error decoding stored message %q", v)
 		}
-		mt := m["content"].(map[string]interface{})
-		if got := mt["test"]; got != texpected[i] {
+		if got := m["test"]; got != texpected[i] {
 			return errors.Errorf("unexpected value %+v instead of %+v at i=%v", got, texpected[i], i)
 		}
 

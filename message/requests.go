@@ -207,15 +207,18 @@ type Typed struct {
 	} `json:"content"`
 }
 
+type Value struct {
+	Previous  *ssb.MessageRef  `json:"previous"`
+	Author    ssb.FeedRef      `json:"author"`
+	Sequence  margaret.BaseSeq `json:"sequence"`
+	Timestamp float64          `json:"timestamp"`
+	Hash      string           `json:"hash"`
+	Content   interface{}      `json:"content"`
+	Signature string           `json:"signature"`
+}
+
 type KeyValueAsMap struct {
-	Key   *ssb.MessageRef `json:"key"`
-	Value struct {
-		Previous  ssb.MessageRef   `json:"previous"`
-		Author    ssb.FeedRef      `json:"author"`
-		Sequence  margaret.BaseSeq `json:"sequence"`
-		Timestamp float64          `json:"timestamp"`
-		Hash      string           `json:"hash"`
-		Content   interface{}      `json:"content"`
-	} `json:"value"`
-	Timestamp int64 `json:"timestamp"`
+	Key       *ssb.MessageRef `json:"key"`
+	Value     Value           `json:"value"`
+	Timestamp int64           `json:"timestamp"`
 }

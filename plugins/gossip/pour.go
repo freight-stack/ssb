@@ -3,8 +3,6 @@ package gossip
 import (
 	"context"
 
-	"go.cryptoscope.co/muxrpc/codec"
-
 	"go.cryptoscope.co/ssb/internal/mutil"
 	"go.cryptoscope.co/ssb/internal/transform"
 
@@ -34,6 +32,10 @@ func (h *handler) pourFeed(ctx context.Context, req *muxrpc.Request) error {
 	feedRef, err := ssb.ParseFeedRef(qry.Id)
 	if err != nil {
 		return nil // only handle valid feed refs
+	}
+
+	if feedRef.Algo == ssb.RefAlgoProto {
+		return errors.Errorf("please use appropriate method for protochain")
 	}
 
 	// check what we got
@@ -82,12 +84,6 @@ func (h *handler) pourFeed(ctx context.Context, req *muxrpc.Request) error {
 			msg, ok := v.(*transform.KeyValue)
 			if !ok {
 				return errors.Errorf("b4pour: expected []byte - got %T", v)
-			}
-			if msg.Message.Author.Algo == ssb.RefAlgoProto {
-				err := req.Stream.Pour(ctx, codec.Body(msg.Message.Offchain))
-				if err != nil {
-					return errors.Wrap(err, "b4pour: offchain send faild")
-				}
 			}
 			sent++
 			return req.Stream.Pour(ctx, message.RawSignedMessage{RawMessage: msg.Data})

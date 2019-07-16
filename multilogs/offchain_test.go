@@ -15,6 +15,7 @@ import (
 	"go.cryptoscope.co/margaret"
 
 	"go.cryptoscope.co/ssb"
+	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/repo"
 )
 
@@ -92,10 +93,10 @@ func XTestOffchainSimple(t *testing.T) {
 		r.NoError(err)
 		storedV, err := rl.Get(rootSeq.(margaret.Seq))
 		r.NoError(err)
-		storedMsg, ok := storedV.(protochain.StoredProtoMessage)
+		storedMsg, ok := storedV.(message.Abstract)
 		r.True(ok)
-		t.Logf("msg:%d\n%s", i, storedMsg.Raw)
-		a.NotNil(storedMsg.Key, "msg:%d - key", i)
+		t.Logf("msg:%d\n%s", i, storedMsg.GetContent())
+		a.NotNil(storedMsg.GetKey(), "msg:%d - key", i)
 		/* TODO:
 		if i != 0 {
 			a.NotNil(storedMsg.Previous, "msg:%d - previous", i)

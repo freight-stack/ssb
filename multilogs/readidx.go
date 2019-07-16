@@ -2,7 +2,7 @@ package multilogs
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 
 	"github.com/dgraph-io/badger"
 	kitlog "github.com/go-kit/kit/log"
@@ -27,21 +27,23 @@ func OpenPrivateRead(log kitlog.Logger, r repo.Interface, kp *ssb.KeyPair) (mult
 			return nulled
 		}
 
-		msg, ok := val.(message.StoredMessage)
+		msg, ok := val.(message.Abstract)
 		if !ok {
-			return errors.Errorf("db/idx private: expected %T - got %T", msg, val)
+			err := errors.Errorf("error casting message. got type %T", val)
+			fmt.Println("privateIDX failed:", err)
+			return err
 		}
 
-		var dmsg struct {
-			Content string `json:"content"`
-		}
+		// var dmsg struct {
+		// 	Content string `json:"content"`
+		// }
 
-		if err := json.Unmarshal(msg.Raw, &dmsg); err != nil {
-			// skip everything that isn't a string
-			return nil
-		}
+		// if err := json.Unmarshal(, &dmsg); err != nil {
+		// 	// skip everything that isn't a string
+		// 	return nil
+		// }
 
-		if _, err := private.Unbox(kp, dmsg.Content); err != nil {
+		if _, err := private.Unbox(kp, string(msg.GetContent())); err != nil {
 			return nil
 		}
 
