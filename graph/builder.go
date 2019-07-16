@@ -63,43 +63,22 @@ func NewBuilder(log kitlog.Logger, db *badger.DB) Builder {
 			return nulled
 		}
 
-		msg, ok := val.(message.StoredMessage)
+		abs, ok := val.(message.Abstract)
 		if !ok {
-			return errors.Errorf("graph/builder: expected %T - got %T", msg, val)
+			err := errors.Errorf("graph/idx: invalid msg value %T", val)
+			log.Log("msg", "contact eval failed", "reason", err)
+			return err
 		}
 
 		var c ssb.Contact
-
-		if len(msg.Offchain) > 0 {
-			err := json.Unmarshal(msg.Offchain, &c)
-			if err != nil {
-				if ssb.IsMessageUnusable(err) {
-					return nil
-				}
-				log.Log("msg", "skipped contact message", "reason", err, "key", msg.Key.Ref())
-				return nil
-			}
-		} else {
-			var dmsg message.DeserializedMessage
-			err := json.Unmarshal(msg.Raw, &dmsg)
-			if err != nil {
-				err = errors.Wrapf(err, "db/idx contacts: first json unmarshal failed (msg: %s)", msg.Key.Ref())
-				log.Log("msg", "skipped contact message", "reason", err)
-				return nil
-			}
-
-			err = json.Unmarshal(dmsg.Content, &c)
-			if err != nil {
-				if ssb.IsMessageUnusable(err) {
-					return nil
-				}
-				log.Log("msg", "skipped contact message", "reason", err, "key", msg.Key.Ref())
-				return nil
-			}
+		err := json.Unmarshal(abs.GetContent(), &c)
+		if err != nil {
+			err = errors.Wrapf(err, "db/idx contacts: first json unmarshal failed (msg: %v)", abs.GetKey())
+			log.Log("msg", "skipped contact message", "reason", err)
+			return nil
 		}
 
-		var err error
-		addr := msg.Author.StoredAddr()
+		addr := abs.GetAuthor().StoredAddr()
 		addr += ":"
 		addr += c.Contact.StoredAddr()
 		switch {
@@ -181,8 +160,7 @@ func (b *builder) Build() (*Graph, error) {
 				continue
 			}
 
-			var bfrom [32]byte
-			copy(bfrom[:], from.PubKey())
+			bfrom := from.StoredAddr()
 			nFrom, has := known[bfrom]
 			if !has {
 				nFrom = &contactNode{dg.NewNode(), from, ""}
@@ -190,8 +168,7 @@ func (b *builder) Build() (*Graph, error) {
 				known[bfrom] = nFrom
 			}
 
-			var bto [32]byte
-			copy(bto[:], to.PubKey())
+			bto := to.StoredAddr()
 			nTo, has := known[bto]
 			if !has {
 				nTo = &contactNode{dg.NewNode(), to, ""}
@@ -245,8 +222,7 @@ type Lookup struct {
 }
 
 func (l Lookup) Dist(to *ssb.FeedRef) ([]graph.Node, float64) {
-	var bto [32]byte
-	copy(bto[:], to.PubKey())
+	bto := to.StoredAddr()
 	nTo, has := l.lookup[bto]
 	if !has {
 		return nil, math.Inf(-1)

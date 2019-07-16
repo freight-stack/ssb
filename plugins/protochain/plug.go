@@ -1,4 +1,4 @@
-package offchain
+package protochain
 
 import (
 	"go.cryptoscope.co/muxrpc"
@@ -9,7 +9,7 @@ type plugin struct {
 }
 
 func (p plugin) Name() string {
-	return "offchain"
+	return "protochain"
 }
 
 func (p plugin) Method() muxrpc.Method {

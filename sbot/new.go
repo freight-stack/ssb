@@ -8,17 +8,15 @@ import (
 	"sync"
 	"time"
 
-	"go.mindeco.de/protochain"
-
-	"go.cryptoscope.co/librarian"
-	"go.cryptoscope.co/netwrap"
-	"go.cryptoscope.co/secretstream"
-
 	"github.com/cryptix/go/logging"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
+	"go.cryptoscope.co/librarian"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/muxrpc"
+	"go.cryptoscope.co/netwrap"
+	"go.cryptoscope.co/secretstream"
+	"go.mindeco.de/protochain"
 
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/blobstore"
@@ -30,8 +28,8 @@ import (
 	"go.cryptoscope.co/ssb/plugins/control"
 	"go.cryptoscope.co/ssb/plugins/get"
 	"go.cryptoscope.co/ssb/plugins/gossip"
-	"go.cryptoscope.co/ssb/plugins/offchain"
 	privplug "go.cryptoscope.co/ssb/plugins/private"
+	pcplug "go.cryptoscope.co/ssb/plugins/protochain"
 	"go.cryptoscope.co/ssb/plugins/publish"
 	"go.cryptoscope.co/ssb/plugins/rawread"
 	"go.cryptoscope.co/ssb/plugins/replicate"
@@ -342,9 +340,9 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		id, rootLog, uf, s.GraphBuilder,
 		histOpts...))
 
-	// offchain version
-	pmgr.Register(offchain.New(
-		kitlog.With(log, "plugin", "offchain"),
+	// protochain version
+	pmgr.Register(pcplug.New(
+		kitlog.With(log, "plugin", "protochain"),
 		id, rootLog, uf, s.GraphBuilder,
 		histOpts...))
 

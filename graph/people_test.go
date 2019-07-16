@@ -27,7 +27,7 @@ type PeopleOpNewPeer struct {
 func (op PeopleOpNewPeer) Op(state *testState) error {
 	publisher := newPublisher(state.t, state.store.root, state.store.userLogs)
 	state.peers[op.name] = publisher
-	ref := publisher.key.Id.Ref()
+	ref := string(publisher.key.Id.StoredAddr())
 	state.refToName[ref] = op.name
 	state.t.Logf("creted %s as %s", op.name, ref)
 	return nil
@@ -216,8 +216,9 @@ func (tc PeopleTestCase) run(mk func(t *testing.T) testStore) func(t *testing.T)
 		g, err := state.store.gbuilder.Build()
 		r.NoError(err, "failed to build graph for debugging")
 		for nick, pub := range state.peers {
-			var newKey [32]byte
-			copy(newKey[:], pub.key.Id.PubKey())
+			newKey := pub.key.Id.StoredAddr()
+			// var newKey [32]byte
+			// copy(newKey[:], pub.key.Id.StoredAddr())
 			node, ok := g.lookup[newKey]
 			r.True(ok, "did not find peer!? %s", nick)
 			cn := node.(*contactNode)

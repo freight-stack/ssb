@@ -79,15 +79,29 @@ func (pl *publishLog) Append(val interface{}) (margaret.Seq, error) {
 		newMsg.Previous = nil
 		newMsg.Sequence = 1
 	} else {
-		currV, err := pl.rootLog.Get(currRootSeq.(margaret.Seq))
+		currMM, err := pl.rootLog.Get(currRootSeq.(margaret.Seq))
 		if err != nil {
 			return nil, errors.Wrap(err, "publishLog: failed to establish current seq")
 		}
 
-		currMsg, ok := currV.(message.StoredMessage)
+		// abs, ok := currMM.(message.Abstract)
+		// if !ok {
+		// 	return nil, errors.Errorf("publishLog: invalid value at sequence %v: %T", currSeq, currMM)
+		// }
+
+		// newMsg.Previous = abs.GetKey()
+		// newMsg.Sequence = abs.GetSequence() + 1
+
+		mm, ok := currMM.(protochain.MultiMessage)
 		if !ok {
-			return nil, errors.Errorf("publishLog: invalid value at sequence %v: %T", currSeq, currV)
+			return nil, errors.Errorf("publishLog: invalid value at sequence %v: %T", currSeq, currMM)
 		}
+
+		currV, err := mm.ByType(protochain.Legacy)
+		if err != nil {
+			return nil, errors.Wrap(err, "publishLog: current is not legacy msg")
+		}
+		currMsg := currV.(*message.StoredMessage)
 
 		newMsg.Previous = currMsg.Key
 		newMsg.Sequence = margaret.BaseSeq(currMsg.Sequence + 1)

@@ -3,10 +3,10 @@ package graph
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
+	"os"
 	"sync"
-
-	"go.cryptoscope.co/ssb/message"
 
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
@@ -14,6 +14,7 @@ import (
 	"go.cryptoscope.co/luigi"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
+	"go.cryptoscope.co/ssb/message"
 	"gonum.org/v1/gonum/graph/simple"
 )
 
@@ -88,73 +89,80 @@ func (b *logBuilder) Build() (*Graph, error) {
 
 	snk := luigi.FuncSink(func(ctx context.Context, v interface{}, err error) error {
 		if err != nil {
+			fmt.Fprintln(os.Stderr, "===> DEBUG\nerr", err)
 			if luigi.IsEOS(err) {
 				return nil
 			}
 			return err
 		}
 
-		msg := v.(message.StoredMessage)
-
-		var c struct {
-			Author  *ssb.FeedRef
-			Content ssb.Contact
+		abs, ok := v.(message.Abstract)
+		if !ok {
+			err := errors.Errorf("graph/idx: invalid msg value %T", v)
+			fmt.Fprintln(os.Stderr, "===> DEBUG\nmsg", "contact eval failed", "reason", err)
+			return err
 		}
-		err = json.Unmarshal(msg.Raw, &c)
+
+		var c ssb.Contact
+		err = json.Unmarshal(abs.GetContent(), &c)
 		if err != nil {
-			if ssb.IsMessageUnusable(err) {
-				return nil
-			}
-			b.logger.Log("msg", "skipped contact message", "reason", err)
+			err = errors.Wrapf(err, "db/idx contacts: first json unmarshal failed (msg: %s)", abs.GetKey().Ref())
+			fmt.Fprintln(os.Stderr, "===> DEBUG\nmsg", "skipped contact message", "reason", err)
 			return nil
 		}
 
-		if c.Author.Equal(c.Content.Contact) {
+		author := abs.GetAuthor()
+		contact := c.Contact
+
+		if author.Equal(contact) {
 			// contact self?!
+			fmt.Fprintln(os.Stderr, "===> DEBUG\nself!?", author.Ref())
 			return nil
 		}
 
-		var bfrom [32]byte
-		copy(bfrom[:], c.Author.PubKey())
+		bfrom := author.StoredAddr()
 		nFrom, has := known[bfrom]
 		if !has {
-			nFrom = &contactNode{dg.NewNode(), c.Author, ""}
+			nFrom = &contactNode{dg.NewNode(), author, ""}
 			dg.AddNode(nFrom)
 			known[bfrom] = nFrom
 		}
 
-		var bto [32]byte
-		copy(bto[:], c.Content.Contact.PubKey())
+		bto := contact.StoredAddr()
 		nTo, has := known[bto]
 		if !has {
-			nTo = &contactNode{dg.NewNode(), c.Content.Contact, ""}
+			nTo = &contactNode{dg.NewNode(), contact, ""}
 			dg.AddNode(nTo)
 			known[bto] = nTo
 		}
 
 		w := math.Inf(-1)
-		if c.Content.Following {
+		if c.Following {
 			w = 1
-		} else if c.Content.Blocking {
+		} else if c.Blocking {
 			w = math.Inf(1)
 		} else {
 			if dg.HasEdgeFromTo(nFrom.ID(), nTo.ID()) {
 				dg.RemoveEdge(nFrom.ID(), nTo.ID())
 			}
+			fmt.Fprintln(os.Stderr, "===> DEBUG\nwatt", author.Ref())
 			return nil
 		}
 
 		edg := simple.WeightedEdge{F: nFrom, T: nTo, W: w}
 		dg.SetWeightedEdge(contactEdge{
 			WeightedEdge: edg,
-			isBlock:      c.Content.Blocking,
+			isBlock:      c.Blocking,
 		})
+		fmt.Fprintln(os.Stderr, "edg", edg)
 		return nil
 	})
+	fmt.Fprintln(os.Stderr, "pumping")
 	err = luigi.Pump(context.TODO(), snk, src)
 	if err != nil {
 		return nil, errors.Wrap(err, "friends: couldn't get idx value")
 	}
+	fmt.Fprintln(os.Stderr, "pumped")
 	g := &Graph{
 		WeightedDirectedGraph: *dg,
 		lookup:                known,
@@ -169,8 +177,7 @@ func (b *logBuilder) Follows(from *ssb.FeedRef) (FeedSet, error) {
 		return nil, errors.Wrap(err, "follows: couldn't build graph")
 	}
 
-	var fb [32]byte
-	copy(fb[:], from.PubKey())
+	fb := from.StoredAddr()
 	nFrom, has := g.lookup[fb]
 	if !has {
 		return nil, ErrNoSuchFrom{from}

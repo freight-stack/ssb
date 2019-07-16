@@ -94,9 +94,7 @@ func (g *handler) HandleConnect(ctx context.Context, e muxrpc.Endpoint) {
 	var blockedAddr []librarian.Addr
 	blocked := tGraph.BlockedList(g.Id)
 	for _, ref := range ufaddrs {
-		var k [32]byte
-		copy(k[:], []byte(ref))
-		if _, isBlocked := blocked[k]; isBlocked {
+		if _, isBlocked := blocked[ref]; isBlocked {
 			blockedAddr = append(blockedAddr, ref)
 		}
 	}
