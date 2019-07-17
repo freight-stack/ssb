@@ -103,7 +103,7 @@ func TestOffchainSync(t *testing.T) {
 	r.NoError(err)
 
 	// give time to sync
-	time.Sleep(5 * time.Second)
+	time.Sleep(3 * time.Second)
 	// be done
 	ali.Network.GetConnTracker().CloseAll()
 
@@ -124,9 +124,11 @@ func TestOffchainSync(t *testing.T) {
 		} else if err != nil {
 			r.NoError(err)
 		}
-		msg, ok := v.(*protochain.MultiMessage)
-		r.True(ok)
-		t.Log(msg)
+		msg, ok := v.(protochain.MultiMessage)
+		r.True(ok, "Type: %T", v)
+		// t.Log(msg)
+		_, err = msg.ByType(protochain.Proto)
+		r.NoError(err)
 		// a.True(msg.Author.Offchain)
 		// a.NotEmpty(msg.Offchain)
 	}
@@ -240,17 +242,21 @@ func TestOffchainPrivate(t *testing.T) {
 		}
 		msg, ok := v.(message.Abstract)
 		r.True(ok)
-		t.Log(msg)
+		// t.Log(msg)
 		// a.True(msg.Author.Offchain)
 		// a.NotEmpty(msg.Offchain)
 		if i == 0 {
+			i++
 			continue // contact msg
 		}
 
 		oc := string(msg.GetContent())
 		t.Log(oc)
 		unboxed, err := private.Unbox(ali.KeyPair, oc)
-		a.NoError(err)
+		if !a.NoError(err) {
+			i++
+			continue
+		}
 		t.Log(string(unboxed))
 		a.NotNil(unboxed)
 		var received struct {
@@ -262,12 +268,12 @@ func TestOffchainPrivate(t *testing.T) {
 		i++
 	}
 
-	privs, err := ali.PrivateLogs.Get(ali.KeyPair.Id.StoredAddr())
-	r.NoError(err)
+	// privs, err := ali.PrivateLogs.Get(ali.KeyPair.Id.StoredAddr())
+	// r.NoError(err)
 
-	v, err := privs.Seq().Value()
-	r.NoError(err)
-	r.Equal(margaret.BaseSeq(3), v)
+	// v, err := privs.Seq().Value()
+	// r.NoError(err)
+	// r.Equal(margaret.BaseSeq(3), v)
 
 	ali.Shutdown()
 	bob.Shutdown()

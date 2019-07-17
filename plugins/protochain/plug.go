@@ -13,7 +13,7 @@ func (p plugin) Name() string {
 }
 
 func (p plugin) Method() muxrpc.Method {
-	return muxrpc.Method{"contentStream"} // dubbed by christian bundy
+	return muxrpc.Method{"protochain"}
 }
 
 func (p plugin) Handler() muxrpc.Handler {

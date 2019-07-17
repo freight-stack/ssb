@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
 )
 
@@ -12,7 +13,7 @@ import (
 type Abstract interface {
 	GetKey() *ssb.MessageRef
 	// GetPrevious() *ssb.MessageRef
-	// GetSequence() margaret.Seq
+	GetSequence() margaret.Seq
 	// GetTimestamp() time.Time?
 	GetAuthor() *ssb.FeedRef
 	GetContent() []byte
@@ -22,6 +23,10 @@ type Abstract interface {
 }
 
 var _ Abstract = (*StoredMessage)(nil)
+
+func (sm StoredMessage) GetSequence() margaret.Seq {
+	return sm.Sequence
+}
 
 func (sm StoredMessage) GetKey() *ssb.MessageRef {
 	return sm.Key

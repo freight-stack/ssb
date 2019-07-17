@@ -70,12 +70,15 @@ func (h *handler) fetchAll(ctx context.Context, e muxrpc.Endpoint, fs graph.Feed
 
 	lst, err := fs.List()
 	if err != nil {
+		fmt.Println("fetching:err", err)
 		return err
 	}
+	fmt.Println("fetching:len", len(lst))
 	for _, r := range lst {
+		fmt.Println("fetching:", r.Ref())
 		err := h.fetchFeed(ctx, r, e)
 		if muxrpc.IsSinkClosed(err) || errors.Cause(err) == context.Canceled {
-			return err
+			fmt.Println("fetching loop:err", err)
 		} else if err != nil {
 			// assuming forked feed for instance
 			h.Info.Log("msg", "fetchFeed stored failed", "err", err)
@@ -132,7 +135,7 @@ func (g *handler) fetchFeed(ctx context.Context, fr *ssb.FeedRef, edp muxrpc.End
 	}
 	var (
 		latestSeq margaret.BaseSeq
-		latestMsg message.StoredMessage
+		latestMsg message.Abstract
 	)
 	switch v := latest.(type) {
 	case librarian.UnsetValue:
@@ -149,19 +152,15 @@ func (g *handler) fetchFeed(ctx context.Context, fr *ssb.FeedRef, edp muxrpc.End
 				return errors.Wrapf(err, "failed retreive stored message")
 			}
 
-			mm, ok := msgV.(protochain.MultiMessage)
+			abs, ok := msgV.(message.Abstract)
 			if !ok {
 				return errors.Errorf("fetch: wrong message type. expected %T - got %T", latestMsg, msgV)
 			}
-			lv, err := mm.ByType(protochain.Legacy)
-			if err != nil {
-				return errors.Wrapf(err, "failed retreive legacy message")
-			}
 
-			latestMsg = *(lv.(*message.StoredMessage))
+			latestMsg = abs
 
-			if latestMsg.Sequence != latestSeq {
-				return &ErrWrongSequence{Stored: latestMsg.Sequence, Indexed: latestSeq, Ref: fr}
+			if hasSeq := latestMsg.GetSequence(); hasSeq != latestSeq {
+				return &ErrWrongSequence{Stored: hasSeq, Indexed: latestSeq, Ref: fr}
 			}
 		}
 	}
@@ -193,9 +192,9 @@ func (g *handler) fetchFeed(ctx context.Context, fr *ssb.FeedRef, edp muxrpc.End
 	var source luigi.Source
 	var snk luigi.Sink
 	if fr.Algo == ssb.RefAlgoProto {
-		source, err = edp.Source(toLong, codec.Body{}, muxrpc.Method{"protochain", "createHistoryStream"}, q)
+		source, err = edp.Source(toLong, codec.Body{}, muxrpc.Method{"protochain", "binaryStream"}, q)
 
-		snk = NewOffchainDrain(fr, latestSeq, latestMsg, g.RootLog, g.hmacSec)
+		snk = protochain.NewStreamDrain(fr, latestSeq, latestMsg, g.RootLog) //, g.hmacSec)
 	} else {
 		source, err = edp.Source(toLong, message.RawSignedMessage{}, muxrpc.Method{"createHistoryStream"}, q)
 
@@ -209,12 +208,12 @@ func (g *handler) fetchFeed(ctx context.Context, fr *ssb.FeedRef, edp muxrpc.End
 	return errors.Wrap(err, "pump with legacy drain failed")
 }
 
-func NewLegacyDrain(who *ssb.FeedRef, start margaret.Seq, lastMsg message.StoredMessage, rl margaret.Log, hmac HMACSecret) luigi.Sink {
+func NewLegacyDrain(who *ssb.FeedRef, start margaret.Seq, abs message.Abstract, rl margaret.Log, hmac HMACSecret) luigi.Sink {
 
 	return &legacyDrain{
 		who:       who,
 		latestSeq: start,
-		latestMsg: &lastMsg,
+		latestMsg: abs,
 		rootLog:   rl,
 		hmacSec:   hmac,
 	}
@@ -223,7 +222,7 @@ func NewLegacyDrain(who *ssb.FeedRef, start margaret.Seq, lastMsg message.Stored
 type legacyDrain struct {
 	who       *ssb.FeedRef // which feed is pulled
 	latestSeq margaret.Seq
-	latestMsg *message.StoredMessage
+	latestMsg message.Abstract
 	rootLog   margaret.Log
 	hmacSec   HMACSecret
 }
@@ -258,15 +257,15 @@ func (ld *legacyDrain) verifyAndValidate(ctx context.Context, v interface{}) (*m
 	}
 
 	if ld.latestSeq.Seq() > 1 {
-		if bytes.Compare(ld.latestMsg.Key.Hash, dmsg.Previous.Hash) != 0 {
+		if bytes.Compare(ld.latestMsg.GetKey().Hash, dmsg.Previous.Hash) != 0 {
 			return nil, errors.Errorf("fetchFeed(%s:%d): previous compare failed expected:%s incoming:%s",
 				ld.who.Ref(),
 				ld.latestSeq,
-				ld.latestMsg.Key.Ref(),
+				ld.latestMsg.GetKey().Ref(),
 				dmsg.Previous.Ref(),
 			)
 		}
-		if ld.latestMsg.Sequence+1 != dmsg.Sequence {
+		if ld.latestMsg.GetSequence().Seq()+1 != dmsg.Sequence.Seq() {
 			return nil, errors.Errorf("fetchFeed(%s:%d): next.seq != curr.seq+1", ld.who.Ref(), ld.latestSeq)
 		}
 	}
@@ -285,86 +284,3 @@ func (ld legacyDrain) Close() error {
 	fmt.Println("closing legacyDrain")
 	return nil
 }
-
-func NewOffchainDrain(who *ssb.FeedRef, start margaret.Seq, lastMsg message.StoredMessage, rl margaret.Log, hmac HMACSecret) luigi.Sink {
-	return luigi.FuncSink(func(_ context.Context, val interface{}, err error) error {
-		return errors.Errorf("obsoleted by protochain")
-	})
-}
-
-/* TODO: make this ProtoDrain
-func NewOffchainDrain(who *ssb.FeedRef, start margaret.Seq, lastMsg message.StoredMessage, rl margaret.Log, hmac HMACSecret) luigi.Sink {
-	ld := legacyDrain{
-		who:       who,
-		latestSeq: start,
-		latestMsg: &lastMsg,
-		rootLog:   rl,
-		hmacSec:   hmac,
-	}
-
-	return &offchainDrain{
-		legacyDrain: ld,
-	}
-}
-
-type offchainDrain struct {
-	legacyDrain
-
-	consumed uint
-	lastData []byte
-	lastHash *ssb.OffchainMessageRef
-}
-
-func (od *offchainDrain) Pour(ctx context.Context, v interface{}) error {
-
-	// flip-flop between content and metadata
-	if od.consumed%2 == 0 {
-		var ok bool
-		od.lastData, ok = v.([]byte)
-		if !ok {
-			return errors.Errorf("b4pour: expected []byte - got %T", v)
-		}
-
-		h := sha256.New()
-		io.Copy(h, bytes.NewReader(od.lastData))
-
-		od.lastHash = &ssb.OffchainMessageRef{
-			Hash: h.Sum(nil),
-			Algo: ssb.RefAlgoSHA256,
-		}
-		fmt.Println("offchain content:", od.lastHash.Ref())
-		od.consumed++
-		return nil
-	}
-
-	nextMsg, err := od.legacyDrain.verifyAndValidate(ctx, v)
-	if err != nil {
-		return errors.Wrap(err, "offchain: failed in metadata portion")
-	}
-
-	var signedRef struct {
-		Content ssb.OffchainMessageRef `json:"content"`
-	}
-	if err := json.Unmarshal(nextMsg.Raw, &signedRef); err != nil {
-		return errors.Wrap(err, "offchain: failed to parse content hash from signed message")
-	}
-
-	if !bytes.Equal(signedRef.Content.Hash, od.lastHash.Hash) {
-		return errors.Errorf("offchain: missmatch between content and signed meta-data")
-	}
-
-	nextMsg.Offchain = od.lastData
-
-	_, err = od.rootLog.Append(*nextMsg)
-	if err != nil {
-		return errors.Wrapf(err, "fetchFeed(%s): failed to append message(%s:%d)", od.who.Ref(), nextMsg.Key.Ref(), nextMsg.Sequence)
-	}
-
-	od.latestSeq = nextMsg.Sequence
-	od.latestMsg = nextMsg
-	fmt.Println("poured offchainMeta", od.latestSeq)
-
-	od.consumed++
-	return nil
-}
-*/

@@ -211,7 +211,12 @@ func initSbot(s *Sbot) (*Sbot, error) {
 				s.latency.With("part", "graph_auth").Observe(time.Since(start).Seconds())
 			}
 			if err != nil {
-				return nil, err
+				// shit - don't see a way to pass being a different feedtype with shs1
+				remote.Algo = ssb.RefAlgoProto
+				err = auth.Authorize(remote)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 		return pmgr.MakeHandler(conn)
