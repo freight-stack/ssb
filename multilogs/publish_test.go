@@ -13,7 +13,6 @@ import (
 	"go.cryptoscope.co/margaret"
 
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/repo"
 )
 
@@ -88,10 +87,10 @@ func TestSignMessages(t *testing.T) {
 		r.NoError(err)
 		storedV, err := rl.Get(rootSeq.(margaret.Seq))
 		r.NoError(err)
-		storedMsg, ok := storedV.(message.Abstract)
+		storedMsg, ok := storedV.(ssb.Message)
 		r.True(ok)
-		t.Logf("msg:%d\n%s", i, storedMsg.GetContent())
-		a.NotNil(storedMsg.GetKey(), "msg:%d - key", i)
+		t.Logf("msg:%d\n%s", i, storedMsg.Content())
+		a.NotNil(storedMsg.Key(), "msg:%d - key", i)
 		if i != 0 {
 			// a.NotNil(storedMsg.Previous, "msg:%d - previous", i)
 		} else {

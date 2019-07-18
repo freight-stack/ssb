@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/margaret/multilog"
-	"go.cryptoscope.co/ssb/message"
+	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/repo"
 )
 
@@ -23,12 +23,12 @@ func OpenUserFeeds(r repo.Interface) (multilog.MultiLog, *badger.DB, repo.ServeF
 			return nulled
 		}
 
-		abstractMsg, ok := value.(message.Abstract)
+		abstractMsg, ok := value.(ssb.Message)
 		if !ok {
 			return errors.Errorf("error casting message. got type %T", value)
 		}
 
-		author := abstractMsg.GetAuthor()
+		author := abstractMsg.Author()
 		authorLog, err := mlog.Get(author.StoredAddr())
 		if err != nil {
 			return errors.Wrap(err, "error opening sublog")

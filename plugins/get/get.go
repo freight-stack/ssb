@@ -2,13 +2,11 @@ package get
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/pkg/errors"
 	"go.cryptoscope.co/muxrpc"
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message"
 )
 
 type plugin struct {
@@ -28,7 +26,7 @@ func (p plugin) Handler() muxrpc.Handler {
 }
 
 type Getter interface {
-	Get(ssb.MessageRef) (*message.StoredMessage, error)
+	Get(ssb.MessageRef) (ssb.Message, error)
 }
 
 func New(g Getter) ssb.Plugin {
@@ -78,7 +76,7 @@ func (h handler) HandleCall(ctx context.Context, req *muxrpc.Request, edp muxrpc
 		return
 	}
 
-	var retMsg json.RawMessage
+	// var retMsg json.RawMessage
 	// if msg.Author.Offchain {
 	// 	var tmpMsg message.DeserializedMessage
 	// 	tmpMsg.Previous = *msg.Previous
@@ -94,9 +92,9 @@ func (h handler) HandleCall(ctx context.Context, req *muxrpc.Request, edp muxrpc
 	// 		return
 	// 	}
 	// } else {
-	retMsg = msg.Raw
+	// retMsg = msg.Raw
 	// }
-	err = req.Return(ctx, retMsg)
+	err = req.Return(ctx, msg.ValueContentJSON())
 	if err != nil {
 		fmt.Println("get: failed to return message:", err)
 	}

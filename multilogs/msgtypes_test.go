@@ -16,7 +16,6 @@ import (
 
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/internal/ctxutils"
-	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/repo"
 )
 
@@ -202,8 +201,8 @@ func makeCompareSink(texpected []string, rootLog margaret.Log) (luigi.FuncSink, 
 
 		m := make(map[string]interface{})
 
-		abs := v.(message.Abstract)
-		err = json.Unmarshal(abs.GetContent(), &m)
+		abs := v.(ssb.Message)
+		err = json.Unmarshal(abs.Content(), &m)
 		if err != nil {
 			return errors.Errorf("error decoding stored message %q", v)
 		}

@@ -2,6 +2,7 @@ package rawread
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/pkg/errors"
 	"go.cryptoscope.co/luigi"
@@ -86,7 +87,7 @@ func (g rxLogHandler) HandleCall(ctx context.Context, req *muxrpc.Request, edp m
 		if !ok {
 			return errors.Errorf("b4pour: expected []byte - got %T", v)
 		}
-		return req.Stream.Pour(ctx, message.RawSignedMessage{RawMessage: msg})
+		return req.Stream.Pour(ctx, json.RawMessage(msg))
 	})
 
 	err = luigi.Pump(ctx, snk, transform.NewKeyValueWrapper(src, qry.Keys))

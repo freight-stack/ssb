@@ -19,7 +19,6 @@ import (
 	"gonum.org/v1/gonum/graph/simple"
 
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message"
 )
 
 // Builder can build a trust graph and answer other questions
@@ -63,7 +62,7 @@ func NewBuilder(log kitlog.Logger, db *badger.DB) Builder {
 			return nulled
 		}
 
-		abs, ok := val.(message.Abstract)
+		abs, ok := val.(ssb.Message)
 		if !ok {
 			err := errors.Errorf("graph/idx: invalid msg value %T", val)
 			log.Log("msg", "contact eval failed", "reason", err)
@@ -71,14 +70,14 @@ func NewBuilder(log kitlog.Logger, db *badger.DB) Builder {
 		}
 
 		var c ssb.Contact
-		err := json.Unmarshal(abs.GetContent(), &c)
+		err := json.Unmarshal(abs.Content(), &c)
 		if err != nil {
-			err = errors.Wrapf(err, "db/idx contacts: first json unmarshal failed (msg: %v)", abs.GetKey())
+			err = errors.Wrapf(err, "db/idx contacts: first json unmarshal failed (msg: %v)", abs.Key())
 			log.Log("msg", "skipped contact message", "reason", err)
 			return nil
 		}
 
-		addr := abs.GetAuthor().StoredAddr()
+		addr := abs.Author().StoredAddr()
 		addr += ":"
 		addr += c.Contact.StoredAddr()
 		switch {

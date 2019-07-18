@@ -10,7 +10,6 @@ import (
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/margaret/multilog"
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/private"
 	"go.cryptoscope.co/ssb/repo"
 )
@@ -27,23 +26,14 @@ func OpenPrivateRead(log kitlog.Logger, r repo.Interface, kp *ssb.KeyPair) (mult
 			return nulled
 		}
 
-		msg, ok := val.(message.Abstract)
+		msg, ok := val.(ssb.Message)
 		if !ok {
 			err := errors.Errorf("error casting message. got type %T", val)
 			fmt.Println("privateIDX failed:", err)
 			return err
 		}
 
-		// var dmsg struct {
-		// 	Content string `json:"content"`
-		// }
-
-		// if err := json.Unmarshal(, &dmsg); err != nil {
-		// 	// skip everything that isn't a string
-		// 	return nil
-		// }
-
-		if _, err := private.Unbox(kp, string(msg.GetContent())); err != nil {
+		if _, err := private.Unbox(kp, string(msg.Content())); err != nil {
 			return nil
 		}
 

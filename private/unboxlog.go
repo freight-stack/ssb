@@ -9,7 +9,7 @@ import (
 	"go.cryptoscope.co/luigi/mfr"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message"
+	"go.cryptoscope.co/ssb/message/legacy"
 )
 
 type unboxedLog struct {
@@ -56,12 +56,12 @@ func (il unboxedLog) Query(args ...margaret.QuerySpec) (luigi.Source, error) {
 			return nil, errors.Wrapf(err, "unboxLog: error getting v(%v) from seqlog log", iv)
 		}
 
-		amsg, ok := val.(message.Abstract)
+		amsg, ok := val.(ssb.Message)
 		if !ok {
 			return nil, errors.Errorf("wrong message type. expected %T - got %T", amsg, val)
 		}
 
-		clearContent, err := Unbox(il.kp, string(amsg.GetContent()))
+		clearContent, err := Unbox(il.kp, string(amsg.Content()))
 		if err != nil {
 			return nil, errors.Wrap(err, "unboxLog: unbox failed")
 		}
@@ -73,12 +73,12 @@ func (il unboxedLog) Query(args ...margaret.QuerySpec) (luigi.Source, error) {
 			return nil, errors.Wrap(err, "unboxLog: failed to make contentVal")
 		}
 
-		author := amsg.GetAuthor()
+		author := amsg.Author()
 		// TODO: fill all the fields
 
 		// map unboxed content int something that looks like value
-		var unboxedMsg message.SignedLegacyMessage
-		// unboxedMsg.Previous = msg.Previous
+		var unboxedMsg legacy.SignedLegacyMessage
+		// unboxedMsg.Previous = amsg.Previous()
 		unboxedMsg.Author = author.Ref()
 		// unboxedMsg.Sequence = msg.Sequence
 		// unboxedMsg.Timestamp = msg.Timestamp.UnixNano() / 100000
@@ -86,9 +86,9 @@ func (il unboxedLog) Query(args ...margaret.QuerySpec) (luigi.Source, error) {
 		unboxedMsg.Content = contentVal
 		unboxedMsg.Signature = "go-ssb-unboxed"
 
-		var msg message.StoredMessage
-		msg.Author = author
-		msg.Raw, err = json.Marshal(unboxedMsg)
+		var msg ssb.Value
+		msg.Author = *author
+		msg.Content, err = json.Marshal(unboxedMsg)
 		return msg, errors.Wrap(err, "unboxLog: failed to encode unboxed msg")
 	}), nil
 }

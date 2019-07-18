@@ -16,7 +16,6 @@ import (
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/internal/mutil"
-	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/private"
 	"go.mindeco.de/protochain"
 )
@@ -240,7 +239,7 @@ func TestOffchainPrivate(t *testing.T) {
 		} else if err != nil {
 			r.NoError(err)
 		}
-		msg, ok := v.(message.Abstract)
+		msg, ok := v.(ssb.Message)
 		r.True(ok)
 
 		if i == 0 {
@@ -248,7 +247,7 @@ func TestOffchainPrivate(t *testing.T) {
 			continue // contact msg
 		}
 
-		oc := string(msg.GetContent())
+		oc := string(msg.Content())
 		t.Log(oc)
 		unboxed, err := private.Unbox(ali.KeyPair, oc)
 		if !a.NoError(err) {

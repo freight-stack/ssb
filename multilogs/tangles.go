@@ -12,7 +12,6 @@ import (
 	"go.cryptoscope.co/librarian"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/margaret/multilog"
-	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/repo"
 )
 
@@ -27,7 +26,7 @@ func OpenTangles(r repo.Interface) (multilog.MultiLog, *badger.DB, repo.ServeFun
 			return nulled
 		}
 
-		msg, ok := msgv.(message.Abstract)
+		msg, ok := msgv.(ssb.Message)
 		if !ok {
 			err := errors.Errorf("error casting message. got type %T", msgv)
 			fmt.Println("tangleIDX failed:", err)
@@ -38,7 +37,7 @@ func OpenTangles(r repo.Interface) (multilog.MultiLog, *badger.DB, repo.ServeFun
 			Root *ssb.MessageRef
 		}
 
-		err := json.Unmarshal(msg.GetContent(), &value)
+		err := json.Unmarshal(msg.Content(), &value)
 		// TODO: maybe check error with more detail - i.e. only drop type errors
 		if err != nil || value.Root == nil {
 			return nil
@@ -51,7 +50,7 @@ func OpenTangles(r repo.Interface) (multilog.MultiLog, *badger.DB, repo.ServeFun
 
 		_, err = tangleLog.Append(seq)
 		// log.Println(msg.Key.Ref(), value.Root.Ref(), seq)
-		return errors.Wrapf(err, "error appending root message %v", msg.GetKey())
+		return errors.Wrapf(err, "error appending root message %v", msg.Key())
 	})
 
 }

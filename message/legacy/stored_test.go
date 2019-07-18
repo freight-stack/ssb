@@ -1,8 +1,12 @@
-package message
+package legacy
 
 import (
 	"encoding/json"
 	"testing"
+
+	"go.cryptoscope.co/ssb"
+
+	"go.cryptoscope.co/ssb/internal/stored"
 
 	"github.com/stretchr/testify/require"
 )
@@ -10,14 +14,16 @@ import (
 func TestAbstractStored(t *testing.T) {
 	r := require.New(t)
 
-	var m StoredMessage
+	var m stored.Message
 	m.Author = testMessages[1].Author
 	m.Raw = testMessages[1].Input
-	t.Log(string(m.Raw))
-	a, ok := interface{}(m).(Abstract)
-	r.True(ok)
 
-	c := a.GetContent()
+	var s StoredMessage
+	s.internal = m
+
+	var a ssb.Message = s
+
+	c := a.Content()
 	r.NotNil(c)
 	r.True(len(c) > 0)
 
@@ -26,6 +32,6 @@ func TestAbstractStored(t *testing.T) {
 	r.NoError(err)
 	r.NotNil(contentMap["type"])
 
-	author := a.GetAuthor()
+	author := a.Author()
 	r.Equal(m.Author.ID, author.ID)
 }

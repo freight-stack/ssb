@@ -14,7 +14,6 @@ import (
 	"go.cryptoscope.co/luigi"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message"
 	"gonum.org/v1/gonum/graph/simple"
 )
 
@@ -96,7 +95,7 @@ func (b *logBuilder) Build() (*Graph, error) {
 			return err
 		}
 
-		abs, ok := v.(message.Abstract)
+		abs, ok := v.(ssb.Message)
 		if !ok {
 			err := errors.Errorf("graph/idx: invalid msg value %T", v)
 			fmt.Fprintln(os.Stderr, "===> DEBUG\nmsg", "contact eval failed", "reason", err)
@@ -104,14 +103,14 @@ func (b *logBuilder) Build() (*Graph, error) {
 		}
 
 		var c ssb.Contact
-		err = json.Unmarshal(abs.GetContent(), &c)
+		err = json.Unmarshal(abs.Content(), &c)
 		if err != nil {
-			err = errors.Wrapf(err, "db/idx contacts: first json unmarshal failed (msg: %s)", abs.GetKey().Ref())
+			err = errors.Wrapf(err, "db/idx contacts: first json unmarshal failed (msg: %s)", abs.Key().Ref())
 			fmt.Fprintln(os.Stderr, "===> DEBUG\nmsg", "skipped contact message", "reason", err)
 			return nil
 		}
 
-		author := abs.GetAuthor()
+		author := abs.Author()
 		contact := c.Contact
 
 		if author.Equal(contact) {

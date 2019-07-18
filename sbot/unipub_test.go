@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"go.cryptoscope.co/ssb/message"
+	"go.cryptoscope.co/ssb"
 
 	"go.cryptoscope.co/luigi"
 
@@ -63,9 +63,9 @@ func TestPublishUnicode(t *testing.T) {
 		if luigi.IsEOS(err) {
 			break
 		}
-		sm := v.(message.Abstract)
+		sm := v.(ssb.Message)
 		var p post
-		c := sm.GetContent()
+		c := sm.Content()
 		err = json.Unmarshal(c, &p)
 		r.NoError(err)
 		r.Equal(newMsg.Text, p.Text)

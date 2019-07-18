@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message"
+	"go.cryptoscope.co/ssb/message/legacy"
 )
 
 func TestFeedFromJS(t *testing.T) {
@@ -67,7 +67,7 @@ func TestFeedFromJS(t *testing.T) {
 
 		msg, err := bob.RootLog.Get(seqMsg.(margaret.BaseSeq))
 		r.NoError(err)
-		storedMsg, ok := msg.(message.StoredMessage)
+		storedMsg, ok := msg.(legacy.StoredMessage)
 		r.True(ok, "wrong type of message: %T", msg)
 		r.Equal(storedMsg.Sequence, margaret.BaseSeq(i+1))
 
@@ -233,7 +233,7 @@ func TestFeedFromGo(t *testing.T) {
 	r.NoError(err)
 	msg, err := s.RootLog.Get(seqMsg.(margaret.BaseSeq))
 	r.NoError(err)
-	storedMsg, ok := msg.(message.StoredMessage)
+	storedMsg, ok := msg.(legacy.StoredMessage)
 	r.True(ok, "wrong type of message: %T", msg)
 	r.Equal(storedMsg.Sequence, margaret.BaseSeq(2))
 

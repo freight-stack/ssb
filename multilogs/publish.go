@@ -13,7 +13,7 @@ import (
 	"go.mindeco.de/protochain"
 
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message"
+	"go.cryptoscope.co/ssb/message/legacy"
 )
 
 type publishLog struct {
@@ -50,12 +50,12 @@ func (pl *publishLog) Append(val interface{}) (margaret.Seq, error) {
 	defer pl.Unlock()
 
 	// prepare persisted message
-	var stored message.StoredMessage
-	stored.Timestamp = time.Now() // "rx"
-	stored.Author = pl.key.Id
+	var stored legacy.StoredMessage
+	stored.Timestamp_ = time.Now() // "rx"
+	stored.Author_ = pl.key.Id
 
 	// set metadata
-	var newMsg message.LegacyMessage
+	var newMsg legacy.LegacyMessage
 	newMsg.Author = pl.key.Id.Ref()
 	newMsg.Hash = "sha256"
 
@@ -84,27 +84,13 @@ func (pl *publishLog) Append(val interface{}) (margaret.Seq, error) {
 			return nil, errors.Wrap(err, "publishLog: failed to establish current seq")
 		}
 
-		// abs, ok := currMM.(message.Abstract)
-		// if !ok {
-		// 	return nil, errors.Errorf("publishLog: invalid value at sequence %v: %T", currSeq, currMM)
-		// }
-
-		// newMsg.Previous = abs.GetKey()
-		// newMsg.Sequence = abs.GetSequence() + 1
-
-		mm, ok := currMM.(protochain.MultiMessage)
+		mm, ok := currMM.(ssb.Message)
 		if !ok {
 			return nil, errors.Errorf("publishLog: invalid value at sequence %v: %T", currSeq, currMM)
 		}
 
-		currV, err := mm.ByType(protochain.Legacy)
-		if err != nil {
-			return nil, errors.Wrap(err, "publishLog: current is not legacy msg")
-		}
-		currMsg := currV.(*message.StoredMessage)
-
-		newMsg.Previous = currMsg.Key
-		newMsg.Sequence = margaret.BaseSeq(currMsg.Sequence + 1)
+		newMsg.Previous = mm.Key()
+		newMsg.Sequence = margaret.BaseSeq(mm.Seq() + 1)
 	}
 
 	mr, signedMessage, err := newMsg.Sign(pl.key.Pair.Secret[:], pl.hmac)
@@ -112,10 +98,10 @@ func (pl *publishLog) Append(val interface{}) (margaret.Seq, error) {
 		return nil, err
 	}
 
-	stored.Previous = newMsg.Previous
-	stored.Sequence = newMsg.Sequence
-	stored.Key = mr
-	stored.Raw = signedMessage
+	stored.Previous_ = newMsg.Previous
+	stored.Sequence_ = newMsg.Sequence
+	stored.Key_ = mr
+	stored.Raw_ = signedMessage
 
 	mm := protochain.NewMultiMessageFromLegacy(&stored)
 

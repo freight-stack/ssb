@@ -2,16 +2,17 @@ package gossip
 
 import (
 	"context"
-
-	"go.cryptoscope.co/ssb/internal/mutil"
-	"go.cryptoscope.co/ssb/internal/transform"
+	"encoding/json"
 
 	"github.com/pkg/errors"
 	"go.cryptoscope.co/librarian"
 	"go.cryptoscope.co/luigi"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/muxrpc"
+
 	"go.cryptoscope.co/ssb"
+	"go.cryptoscope.co/ssb/internal/mutil"
+	"go.cryptoscope.co/ssb/internal/transform"
 	"go.cryptoscope.co/ssb/message"
 )
 
@@ -86,7 +87,7 @@ func (h *handler) pourFeed(ctx context.Context, req *muxrpc.Request) error {
 				return errors.Errorf("b4pour: expected []byte - got %T", v)
 			}
 			sent++
-			return req.Stream.Pour(ctx, message.RawSignedMessage{RawMessage: msg.Data})
+			return req.Stream.Pour(ctx, json.RawMessage(msg.Data))
 		})
 
 		err = luigi.Pump(ctx, snk, transform.NewKeyValueWrapper(src, qry.Keys))

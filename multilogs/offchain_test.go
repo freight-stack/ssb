@@ -7,15 +7,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"go.mindeco.de/protochain"
-
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.cryptoscope.co/margaret"
+	"go.mindeco.de/protochain"
 
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/repo"
 )
 
@@ -93,10 +91,10 @@ func XTestOffchainSimple(t *testing.T) {
 		r.NoError(err)
 		storedV, err := rl.Get(rootSeq.(margaret.Seq))
 		r.NoError(err)
-		storedMsg, ok := storedV.(message.Abstract)
+		storedMsg, ok := storedV.(ssb.Message)
 		r.True(ok)
-		t.Logf("msg:%d\n%s", i, storedMsg.GetContent())
-		a.NotNil(storedMsg.GetKey(), "msg:%d - key", i)
+		t.Logf("msg:%d\n%s", i, storedMsg.Content())
+		a.NotNil(storedMsg.Key(), "msg:%d - key", i)
 		/* TODO:
 		if i != 0 {
 			a.NotNil(storedMsg.Previous, "msg:%d - previous", i)

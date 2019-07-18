@@ -14,7 +14,6 @@ import (
 	"go.cryptoscope.co/margaret"
 
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/repo"
 )
 
@@ -123,7 +122,7 @@ func OpenAbout(log kitlog.Logger, r repo.Interface) (AboutStore, repo.ServeFunc,
 }
 
 func updateAboutMessage(ctx context.Context, seq margaret.Seq, val interface{}, idx librarian.SetterIndex) error {
-	msg, ok := val.(message.Abstract)
+	msg, ok := val.(ssb.Message)
 	if !ok {
 		if margaret.IsErrNulled(val.(error)) {
 			return nil
@@ -132,7 +131,7 @@ func updateAboutMessage(ctx context.Context, seq margaret.Seq, val interface{}, 
 	}
 
 	var aboutMSG ssb.About
-	err := json.Unmarshal(msg.GetContent(), &aboutMSG)
+	err := json.Unmarshal(msg.Content(), &aboutMSG)
 	if err != nil {
 		if ssb.IsMessageUnusable(err) {
 			return nil
@@ -144,7 +143,7 @@ func updateAboutMessage(ctx context.Context, seq margaret.Seq, val interface{}, 
 	// about:from:field
 	addr := aboutMSG.About.StoredAddr()
 	addr += ":"
-	addr += msg.GetAuthor().StoredAddr()
+	addr += msg.Author().StoredAddr()
 	addr += ":"
 	if aboutMSG.Name != "" {
 		err = idx.Set(ctx, addr+"name", aboutMSG.Name)
