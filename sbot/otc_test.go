@@ -17,7 +17,7 @@ import (
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/internal/mutil"
 	"go.cryptoscope.co/ssb/private"
-	"go.mindeco.de/protochain"
+	"go.cryptoscope.co/ssb/message/gabbygrove"
 )
 
 func TestOffchainSync(t *testing.T) {

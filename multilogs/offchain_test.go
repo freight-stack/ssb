@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.cryptoscope.co/margaret"
-	"go.mindeco.de/protochain"
+	"go.cryptoscope.co/ssb/message/gabbygrove"
 
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/repo"

@@ -10,7 +10,7 @@ import (
 	"go.cryptoscope.co/luigi"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/margaret/multilog"
-	"go.mindeco.de/protochain"
+	"go.cryptoscope.co/ssb/message/gabbygrove"
 
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/message/legacy"
@@ -103,7 +103,7 @@ func (pl *publishLog) Append(val interface{}) (margaret.Seq, error) {
 	stored.Key_ = mr
 	stored.Raw_ = signedMessage
 
-	mm := protochain.NewMultiMessageFromLegacy(&stored)
+	mm := gabbygrove.NewMultiMessageFromLegacy(&stored)
 
 	_, err = pl.rootLog.Append(mm)
 	if err != nil {

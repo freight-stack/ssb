@@ -1,4 +1,4 @@
-package protochain
+package gabbygrove
 
 import (
 	"go.cryptoscope.co/muxrpc"

@@ -1,11 +1,11 @@
-package protochain
+package gabbygrove
 
 import (
 	"context"
 	"fmt"
 	"sync"
 
-	"go.mindeco.de/protochain"
+	"go.cryptoscope.co/ssb/message/gabbygrove"
 
 	"github.com/cryptix/go/logging"
 	"github.com/pkg/errors"

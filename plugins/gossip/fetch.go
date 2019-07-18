@@ -18,7 +18,7 @@ import (
 	"go.cryptoscope.co/ssb/graph"
 	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/message/legacy"
-	"go.mindeco.de/protochain"
+	"go.cryptoscope.co/ssb/message/gabbygrove"
 )
 
 type ErrWrongSequence struct {
