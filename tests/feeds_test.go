@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message/legacy"
 )
 
 func TestFeedFromJS(t *testing.T) {
@@ -67,9 +66,9 @@ func TestFeedFromJS(t *testing.T) {
 
 		msg, err := bob.RootLog.Get(seqMsg.(margaret.BaseSeq))
 		r.NoError(err)
-		storedMsg, ok := msg.(legacy.StoredMessage)
+		storedMsg, ok := msg.(ssb.Message)
 		r.True(ok, "wrong type of message: %T", msg)
-		r.Equal(storedMsg.Sequence_, margaret.BaseSeq(i+1))
+		r.Equal(storedMsg.Seq(), margaret.BaseSeq(i+1).Seq())
 
 		type testWrap struct {
 			Author  ssb.FeedRef
@@ -79,7 +78,7 @@ func TestFeedFromJS(t *testing.T) {
 			}
 		}
 		var m testWrap
-		err = json.Unmarshal(storedMsg.Raw_, &m)
+		err = json.Unmarshal(storedMsg.ValueContentJSON(), &m)
 		r.NoError(err)
 		r.True(alice.Equal(&m.Author), "wrong author")
 		r.Equal(m.Content.Type, "test")
@@ -233,9 +232,9 @@ func TestFeedFromGo(t *testing.T) {
 	r.NoError(err)
 	msg, err := s.RootLog.Get(seqMsg.(margaret.BaseSeq))
 	r.NoError(err)
-	storedMsg, ok := msg.(legacy.StoredMessage)
+	storedMsg, ok := msg.(ssb.Message)
 	r.True(ok, "wrong type of message: %T", msg)
-	r.Equal(storedMsg.Sequence_, margaret.BaseSeq(2))
+	r.Equal(storedMsg.Seq(), margaret.BaseSeq(2).Seq())
 
 	ts.wait()
 }

@@ -9,7 +9,6 @@ import (
 	"go.cryptoscope.co/margaret"
 
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message/legacy"
 	"go.cryptoscope.co/ssb/private"
 )
 
@@ -119,9 +118,9 @@ func TestPrivMsgsFromGo(t *testing.T) {
 	r.NoError(err)
 	msg, err := s.RootLog.Get(seqMsg.(margaret.BaseSeq))
 	r.NoError(err)
-	storedMsg, ok := msg.(legacy.StoredMessage)
+	storedMsg, ok := msg.(ssb.Message)
 	r.True(ok, "wrong type of message: %T", msg)
-	r.Equal(storedMsg.Sequence_, margaret.BaseSeq(2))
+	r.Equal(storedMsg.Seq(), margaret.BaseSeq(2).Seq())
 
 	ts.wait()
 }
@@ -183,9 +182,9 @@ func TestPrivMsgsFromJS(t *testing.T) {
 
 		msg, err := bob.RootLog.Get(seqMsg.(margaret.BaseSeq))
 		r.NoError(err)
-		storedMsg, ok := msg.(legacy.StoredMessage)
+		absMsg, ok := msg.(ssb.Message)
 		r.True(ok, "wrong type of message: %T", msg)
-		r.Equal(storedMsg.Sequence_, margaret.BaseSeq(i+1))
+		r.Equal(absMsg.Seq(), margaret.BaseSeq(i+1).Seq())
 
 		if i == 0 {
 			continue // skip contact
@@ -195,8 +194,8 @@ func TestPrivMsgsFromJS(t *testing.T) {
 			Content string
 		}
 		var m testWrap
-		err = json.Unmarshal(storedMsg.Raw_, &m)
-		t.Logf("msg:%d:%s", i, string(storedMsg.Raw_))
+		err = json.Unmarshal(absMsg.ValueContentJSON(), &m)
+		// t.Logf("msg:%d:%s", i, string(storedMsg.Raw_))
 		r.NoError(err)
 		r.True(alice.Equal(&m.Author), "wrong author")
 		r.True(strings.HasSuffix(m.Content, ".box"), "test")
