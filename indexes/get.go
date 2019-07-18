@@ -3,14 +3,13 @@ package indexes
 import (
 	"context"
 
-	"go.cryptoscope.co/ssb"
-
 	"github.com/dgraph-io/badger"
 	"github.com/pkg/errors"
 	"go.cryptoscope.co/librarian"
 	libbadger "go.cryptoscope.co/librarian/badger"
 	"go.cryptoscope.co/margaret"
 
+	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/repo"
 )
 

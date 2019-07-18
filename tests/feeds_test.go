@@ -69,7 +69,7 @@ func TestFeedFromJS(t *testing.T) {
 		r.NoError(err)
 		storedMsg, ok := msg.(legacy.StoredMessage)
 		r.True(ok, "wrong type of message: %T", msg)
-		r.Equal(storedMsg.Sequence, margaret.BaseSeq(i+1))
+		r.Equal(storedMsg.Sequence_, margaret.BaseSeq(i+1))
 
 		type testWrap struct {
 			Author  ssb.FeedRef
@@ -79,14 +79,14 @@ func TestFeedFromJS(t *testing.T) {
 			}
 		}
 		var m testWrap
-		err = json.Unmarshal(storedMsg.Raw, &m)
+		err = json.Unmarshal(storedMsg.Raw_, &m)
 		r.NoError(err)
 		r.True(alice.Equal(&m.Author), "wrong author")
 		r.Equal(m.Content.Type, "test")
 		r.Equal(m.Content.Text, "foo")
 		r.Equal(m.Content.I, n-i, "wrong I on msg: %d", i)
 		if i == n-1 {
-			lastMsg = storedMsg.Key.Ref()
+			lastMsg = storedMsg.Key().Ref()
 		}
 	}
 
@@ -235,7 +235,7 @@ func TestFeedFromGo(t *testing.T) {
 	r.NoError(err)
 	storedMsg, ok := msg.(legacy.StoredMessage)
 	r.True(ok, "wrong type of message: %T", msg)
-	r.Equal(storedMsg.Sequence, margaret.BaseSeq(2))
+	r.Equal(storedMsg.Sequence_, margaret.BaseSeq(2))
 
 	ts.wait()
 }

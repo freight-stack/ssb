@@ -7,8 +7,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.cryptoscope.co/margaret"
+
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message"
+	"go.cryptoscope.co/ssb/message/legacy"
 	"go.cryptoscope.co/ssb/private"
 )
 
@@ -118,9 +119,9 @@ func TestPrivMsgsFromGo(t *testing.T) {
 	r.NoError(err)
 	msg, err := s.RootLog.Get(seqMsg.(margaret.BaseSeq))
 	r.NoError(err)
-	storedMsg, ok := msg.(message.StoredMessage)
+	storedMsg, ok := msg.(legacy.StoredMessage)
 	r.True(ok, "wrong type of message: %T", msg)
-	r.Equal(storedMsg.Sequence, margaret.BaseSeq(2))
+	r.Equal(storedMsg.Sequence_, margaret.BaseSeq(2))
 
 	ts.wait()
 }
@@ -182,9 +183,9 @@ func TestPrivMsgsFromJS(t *testing.T) {
 
 		msg, err := bob.RootLog.Get(seqMsg.(margaret.BaseSeq))
 		r.NoError(err)
-		storedMsg, ok := msg.(message.StoredMessage)
+		storedMsg, ok := msg.(legacy.StoredMessage)
 		r.True(ok, "wrong type of message: %T", msg)
-		r.Equal(storedMsg.Sequence, margaret.BaseSeq(i+1))
+		r.Equal(storedMsg.Sequence_, margaret.BaseSeq(i+1))
 
 		if i == 0 {
 			continue // skip contact
@@ -194,8 +195,8 @@ func TestPrivMsgsFromJS(t *testing.T) {
 			Content string
 		}
 		var m testWrap
-		err = json.Unmarshal(storedMsg.Raw, &m)
-		t.Logf("msg:%d:%s", i, string(storedMsg.Raw))
+		err = json.Unmarshal(storedMsg.Raw_, &m)
+		t.Logf("msg:%d:%s", i, string(storedMsg.Raw_))
 		r.NoError(err)
 		r.True(alice.Equal(&m.Author), "wrong author")
 		r.True(strings.HasSuffix(m.Content, ".box"), "test")

@@ -10,7 +10,7 @@ const createSbot = require('ssb-server')
   .use(require('ssb-private'))
   .use(require('ssb-friends'))
   .use(require('ssb-blobs'))
-  .use(require('ssb-content-stream'))
+  // .use(require('ssb-content-stream'))
 
 
 const testName = process.env['TEST_NAME']

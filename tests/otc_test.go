@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message"
+	"go.cryptoscope.co/ssb/message/legacy"
 	"go.cryptoscope.co/ssb/sbot"
 )
 
@@ -22,12 +22,12 @@ func TestContentFeedFromJS(t *testing.T) {
 
 	kp, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	kp.Id.Offchain = true
+	kp.Id.Algo = ssb.RefAlgoProto
 
 	ts.startGoBot(sbot.WithKeyPair(kp))
 	bob := ts.gobot
 
-	r.True(strings.HasSuffix(bob.KeyPair.Id.Ref(), ".offchain"))
+	r.True(strings.HasSuffix(bob.KeyPair.Id.Ref(), ".proto-v1"))
 
 	alice := ts.startJSBot(`
 	function mkMsg(msg) {
@@ -75,9 +75,9 @@ func TestContentFeedFromJS(t *testing.T) {
 
 		msg, err := bob.RootLog.Get(seqMsg.(margaret.BaseSeq))
 		r.NoError(err)
-		storedMsg, ok := msg.(message.StoredMessage)
+		storedMsg, ok := msg.(legacy.StoredMessage)
 		r.True(ok, "wrong type of message: %T", msg)
-		r.Equal(storedMsg.Sequence, margaret.BaseSeq(i+1))
+		r.Equal(storedMsg.Sequence_, margaret.BaseSeq(i+1))
 
 		type testWrap struct {
 			Author  ssb.FeedRef
@@ -87,13 +87,13 @@ func TestContentFeedFromJS(t *testing.T) {
 			}
 		}
 		var m testWrap
-		err = json.Unmarshal(storedMsg.Raw, &m)
+		err = json.Unmarshal(storedMsg.Raw_, &m)
 		r.NoError(err)
 		r.True(alice.Equal(&m.Author), "wrong author")
 		a.Equal(m.Content.Type, "offchain")
 		a.Equal(m.Content.Text, "foo")
 		a.Equal(m.Content.Test, n-i, "wrong I on msg: %d", i)
-		t.Log(string(storedMsg.Raw))
+		t.Log(string(storedMsg.Raw_))
 	}
 }
 
@@ -106,7 +106,7 @@ func TestContentFeedFromGo(t *testing.T) {
 	// make offchain ID
 	kp, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	kp.Id.Offchain = true
+	kp.Id.Algo = ssb.RefAlgoProto
 
 	ts.startGoBot(sbot.WithKeyPair(kp))
 	s := ts.gobot
@@ -198,9 +198,9 @@ func TestContentFeedFromGo(t *testing.T) {
 	r.NoError(err)
 	msg, err := s.RootLog.Get(seqMsg.(margaret.BaseSeq))
 	r.NoError(err)
-	storedMsg, ok := msg.(message.StoredMessage)
+	storedMsg, ok := msg.(legacy.StoredMessage)
 	r.True(ok, "wrong type of message: %T", msg)
-	r.Equal(storedMsg.Sequence, margaret.BaseSeq(3))
+	r.Equal(storedMsg.Sequence_, margaret.BaseSeq(3))
 
 	ts.wait()
 }
