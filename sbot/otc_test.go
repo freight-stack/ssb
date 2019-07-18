@@ -228,7 +228,7 @@ func TestOffchainPrivate(t *testing.T) {
 
 	seqv, err := bosLogAtAli.Seq().Value()
 	r.NoError(err)
-	r.Equal(margaret.BaseSeq(9), seqv)
+	r.Equal(margaret.BaseSeq(9), seqv) // contact + pms
 
 	src, err := mutil.Indirect(ali.RootLog, bosLogAtAli).Query()
 	r.NoError(err)
@@ -242,9 +242,7 @@ func TestOffchainPrivate(t *testing.T) {
 		}
 		msg, ok := v.(message.Abstract)
 		r.True(ok)
-		// t.Log(msg)
-		// a.True(msg.Author.Offchain)
-		// a.NotEmpty(msg.Offchain)
+
 		if i == 0 {
 			i++
 			continue // contact msg
@@ -268,12 +266,12 @@ func TestOffchainPrivate(t *testing.T) {
 		i++
 	}
 
-	// privs, err := ali.PrivateLogs.Get(ali.KeyPair.Id.StoredAddr())
-	// r.NoError(err)
+	privs, err := ali.PrivateLogs.Get(ali.KeyPair.Id.StoredAddr())
+	r.NoError(err)
 
-	// v, err := privs.Seq().Value()
-	// r.NoError(err)
-	// r.Equal(margaret.BaseSeq(3), v)
+	v, err := privs.Seq().Value()
+	r.NoError(err)
+	r.Equal(margaret.BaseSeq(8), v) // only pms
 
 	ali.Shutdown()
 	bob.Shutdown()

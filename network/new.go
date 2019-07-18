@@ -160,10 +160,10 @@ func (n *node) handleConnection(ctx context.Context, conn net.Conn, hws ...muxrp
 
 	h, err := n.opts.MakeHandler(conn)
 	if err != nil {
+		n.log.Log("conn", "mkHandler", "err", err, "peer", conn.RemoteAddr())
 		if _, ok := errors.Cause(err).(*ssb.ErrOutOfReach); ok {
 			return // ignore silently
 		}
-		n.log.Log("conn", "mkHandler", "err", err, "peer", conn.RemoteAddr())
 		return
 	}
 

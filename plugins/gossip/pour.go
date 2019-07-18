@@ -69,7 +69,7 @@ func (h *handler) pourFeed(ctx context.Context, req *muxrpc.Request) error {
 		src, err := resolved.Query(
 			margaret.Gte(margaret.BaseSeq(qry.Seq)),
 			margaret.Limit(int(qry.Limit)),
-			margaret.Live(qry.Live),
+			margaret.Live(false),
 			margaret.Reverse(qry.Reverse),
 		)
 		if err != nil {

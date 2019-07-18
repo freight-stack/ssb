@@ -211,7 +211,6 @@ func (ref FeedRef) PubKey() ed25519.PublicKey {
 // with an additonal type byte but this _should_ make it work for now
 func (ref FeedRef) StoredAddr() librarian.Addr {
 	addr := librarian.Addr(ref.Ref())
-	fmt.Println("storedAddr:", addr)
 	return addr
 }
 
