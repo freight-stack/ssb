@@ -10,6 +10,8 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger v2.0.0-rc.2.0.20190610165348-a804ffa35fb9+incompatible
 	github.com/go-kit/kit v0.8.0
+	github.com/gogo/protobuf v1.1.1
+	github.com/golang/protobuf v1.3.1
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/keks/nocomment v0.0.0-20181007001506-30c6dcb4a472
 	github.com/kylelemons/godebug v1.1.0
@@ -19,7 +21,7 @@ require (
 	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/shurcooL/go-goon v0.0.0-20170922171312-37c2f522c041
 	github.com/stretchr/testify v1.3.0
-	github.com/ugorji/go v1.1.5-pre // indirect
+	github.com/ugorji/go/codec v1.1.5-pre
 	go.cryptoscope.co/librarian v0.1.2
 	go.cryptoscope.co/luigi v0.3.3
 	go.cryptoscope.co/margaret v0.0.9
