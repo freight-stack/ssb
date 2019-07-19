@@ -3,9 +3,7 @@ package graph
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math"
-	"os"
 	"sync"
 
 	kitlog "github.com/go-kit/kit/log"
@@ -88,7 +86,6 @@ func (b *logBuilder) Build() (*Graph, error) {
 
 	snk := luigi.FuncSink(func(ctx context.Context, v interface{}, err error) error {
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "===> DEBUG\nerr", err)
 			if luigi.IsEOS(err) {
 				return nil
 			}
@@ -98,7 +95,6 @@ func (b *logBuilder) Build() (*Graph, error) {
 		abs, ok := v.(ssb.Message)
 		if !ok {
 			err := errors.Errorf("graph/idx: invalid msg value %T", v)
-			fmt.Fprintln(os.Stderr, "===> DEBUG\nmsg", "contact eval failed", "reason", err)
 			return err
 		}
 
@@ -106,7 +102,6 @@ func (b *logBuilder) Build() (*Graph, error) {
 		err = json.Unmarshal(abs.ContentBytes(), &c)
 		if err != nil {
 			err = errors.Wrapf(err, "db/idx contacts: first json unmarshal failed (msg: %s)", abs.Key().Ref())
-			fmt.Fprintln(os.Stderr, "===> DEBUG\nmsg", "skipped contact message", "reason", err)
 			return nil
 		}
 
@@ -115,7 +110,6 @@ func (b *logBuilder) Build() (*Graph, error) {
 
 		if author.Equal(contact) {
 			// contact self?!
-			fmt.Fprintln(os.Stderr, "===> DEBUG\nself!?", author.Ref())
 			return nil
 		}
 
@@ -144,7 +138,6 @@ func (b *logBuilder) Build() (*Graph, error) {
 			if dg.HasEdgeFromTo(nFrom.ID(), nTo.ID()) {
 				dg.RemoveEdge(nFrom.ID(), nTo.ID())
 			}
-			fmt.Fprintln(os.Stderr, "===> DEBUG\nwatt", author.Ref())
 			return nil
 		}
 
@@ -153,15 +146,13 @@ func (b *logBuilder) Build() (*Graph, error) {
 			WeightedEdge: edg,
 			isBlock:      c.Blocking,
 		})
-		fmt.Fprintln(os.Stderr, "edg", edg)
 		return nil
 	})
-	fmt.Fprintln(os.Stderr, "pumping")
+
 	err = luigi.Pump(context.TODO(), snk, src)
 	if err != nil {
 		return nil, errors.Wrap(err, "friends: couldn't get idx value")
 	}
-	fmt.Fprintln(os.Stderr, "pumped")
 	g := &Graph{
 		WeightedDirectedGraph: *dg,
 		lookup:                known,
