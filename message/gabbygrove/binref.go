@@ -140,6 +140,10 @@ func (ref BinaryRef) GetRef(t RefType) (ssb.Ref, error) {
 	return ret, nil
 }
 
+func NewBinaryRef(r ssb.Ref) (*BinaryRef, error) {
+	return fromRef(r)
+}
+
 func fromRef(r ssb.Ref) (*BinaryRef, error) {
 	var br BinaryRef
 	switch tr := r.(type) {

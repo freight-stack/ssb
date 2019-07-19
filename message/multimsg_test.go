@@ -52,14 +52,14 @@ func TestMultiMsgProto(t *testing.T) {
 	kp, err := ssb.NewKeyPair(bytes.NewReader(dead))
 	r.NoError(err)
 
-	authorRef, err := ssb.FromRef(kp.Id)
+	authorRef, err := gabbygrove.NewBinaryRef(kp.Id)
 	r.NoError(err)
 
 	cref := &ssb.BlobRef{
 		Hash: dead,
 		Algo: "ofc.sha256",
 	}
-	payloadRef, err := ssb.FromRef(cref)
+	payloadRef, err := gabbygrove.NewBinaryRef(cref)
 	r.NoError(err)
 
 	now1 := uint64(time.Unix(631249445, 0).Unix())

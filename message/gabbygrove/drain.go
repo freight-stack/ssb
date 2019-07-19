@@ -74,7 +74,7 @@ func (ld *protoDrain) verifyAndValidate(ctx context.Context, v interface{}) (*Tr
 		if err != nil {
 			return nil, err
 		}
-		if bytes.Compare(ld.latestMsg.Key().Hash, prev.(ssb.MessageRef).Hash) != 0 {
+		if bytes.Compare(ld.latestMsg.Key().Hash, prev.(*ssb.MessageRef).Hash) != 0 {
 			return nil, errors.Errorf("protoStream(%s:%d): previous compare failed expected:%s incoming:%s",
 				ld.who.Ref(),
 				ld.latestSeq,
