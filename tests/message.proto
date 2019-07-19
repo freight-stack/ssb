@@ -1,0 +1,41 @@
+syntax = "proto3";
+package gabbygrove;
+
+option go_package = "gabbygrove";
+
+enum RefType {
+    Undefined = 0;
+    MessageRef = 1;  // 32byte sha256 hash
+    FeedRef = 2;     // 32 bytes of ed25519 public key
+    ContentRef = 3;
+}
+
+enum ContentType {
+    Unset = 0;
+    JSON = 1;
+    // CBOR = 2; ???
+    // Binary/Image
+}
+
+message Event {
+  bytes previous   = 1;
+  bytes author     = 2;
+  uint64 sequence  = 3;
+  Content content  = 4;
+  uint64 timestamp = 5;
+
+  message Content {
+    ContentType type = 1;
+    uint64 size = 2;
+    bytes hash = 3;
+  }
+}
+
+// Transfer holds the an encoded represantion of an event.
+// It was signed by the events author and the corresponding signature is sent in field 2
+// the hash of the message (the next previous), is event and signature concatenated
+message Transfer {
+    bytes event = 1;
+    bytes signature = 2;
+    bytes content = 3;
+}

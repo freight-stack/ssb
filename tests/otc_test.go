@@ -123,7 +123,11 @@ func TestContentFeedFromGo(t *testing.T) {
 				t.equal(msgs.length,3)
 				console.warn('Messages: '+msgs.length)
 				console.warn(JSON.stringify(msgs))
-				t.end()
+				sbot.protochain.verify(msgs[0], (err, evt) => {
+					t.error(err, 'verified msg[0]')
+					t.ok(evt)
+					t.end()
+				})
 			})
 		)
 			

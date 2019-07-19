@@ -160,7 +160,7 @@ I _think_ this is a solid format but wouldn't mind to be superseded by something
 
 ## Names
 
-The hole thing might be called _Gabby Groves_
+The whole thing might be called _Gabby Groves_
 
 ## Event
 
@@ -169,6 +169,11 @@ _Message_ and _Meta_ were not easy to speak and reason about. _What includes wha
 Also `Message` was redundant to begin with. The Hash of a signed event is the SHA256 of `event` and `signature` bytes concataneted.
 
 TODO: cfts msg
+
+## Content Type
+
+was totally the wrong name. Should be encoding.
+Type is already ambigous because of application content.type like about and contact
 
 ## Deterministic encoding
 
