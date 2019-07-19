@@ -13,6 +13,7 @@ import (
 	"go.cryptoscope.co/margaret/codec/msgpack"
 	"go.cryptoscope.co/margaret/offset2"
 	"go.cryptoscope.co/ssb"
+	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/message/gabbygrove"
 	"go.cryptoscope.co/ssb/multilogs"
 	"go.cryptoscope.co/ssb/repo"
@@ -27,8 +28,9 @@ func TestPublish(t *testing.T) {
 	os.RemoveAll("testrun")
 	testRepoFolder := filepath.Join("testrun", t.Name())
 	tesRepo := repo.New(testRepoFolder)
-	testStore, err := offset2.Open(filepath.Join(testRepoFolder, "log"), msgpack.New(&gabbygrove.MultiMessage{}))
+	testStore, err := offset2.Open(filepath.Join(testRepoFolder, "log"), msgpack.New(&message.MultiMessage{}))
 	r.NoError(err)
+	testStore = message.NewWrappedLog(testStore)
 
 	userFeeds, _, updateUserFeeds, err := multilogs.OpenUserFeeds(tesRepo)
 	r.NoError(err)
@@ -77,13 +79,13 @@ func TestPublish(t *testing.T) {
 		storedV, err := testStore.Get(currSeq.(margaret.BaseSeq))
 		r.NoError(err)
 
-		multiMsg, ok := storedV.(gabbygrove.MultiMessage)
+		multiMsg, ok := storedV.(message.MultiMessage)
 		r.True(ok)
 
 		r.NotNil(multiMsg.Key())
 
 		// raw stores the transfer encoding
-		msgv, err := multiMsg.ByType(gabbygrove.Proto)
+		msgv, err := multiMsg.ByType(message.Proto)
 		r.NoError(err)
 		tr := msgv.(*gabbygrove.Transfer)
 
@@ -102,7 +104,7 @@ func TestPublish(t *testing.T) {
 			// get previous message
 			prevV, err := testStore.Get(margaret.BaseSeq(i - 1))
 			r.NoError(err)
-			prevMsg, ok := prevV.(gabbygrove.MultiMessage)
+			prevMsg, ok := prevV.(message.MultiMessage)
 			r.True(ok)
 
 			// compare reference
@@ -121,8 +123,9 @@ func TestMultipleFeeds(t *testing.T) {
 	os.RemoveAll("testrun")
 	testRepoFolder := filepath.Join("testrun", t.Name())
 	tesRepo := repo.New(testRepoFolder)
-	testStore, err := offset2.Open(filepath.Join(testRepoFolder, "log"), msgpack.New(&gabbygrove.MultiMessage{}))
+	testStore, err := offset2.Open(filepath.Join(testRepoFolder, "log"), msgpack.New(&message.MultiMessage{}))
 	r.NoError(err)
+	testStore = message.NewWrappedLog(testStore)
 
 	userFeeds, _, updateUserFeeds, err := multilogs.OpenUserFeeds(tesRepo)
 	r.NoError(err)
@@ -206,10 +209,10 @@ func TestMultipleFeeds(t *testing.T) {
 		msgV, err := testStore.Get(seq)
 		r.NoError(err)
 
-		multiMsg, ok := msgV.(gabbygrove.MultiMessage)
+		multiMsg, ok := msgV.(message.MultiMessage)
 		r.True(ok)
 		// raw stores the transfer encoding
-		msgv, err := multiMsg.ByType(gabbygrove.Proto)
+		msgv, err := multiMsg.ByType(message.Proto)
 		r.NoError(err)
 		tr := msgv.(*gabbygrove.Transfer)
 
@@ -223,10 +226,10 @@ func TestMultipleFeeds(t *testing.T) {
 		msgV, err := testStore.Get(seq)
 		r.NoError(err)
 
-		multiMsg, ok := msgV.(gabbygrove.MultiMessage)
+		multiMsg, ok := msgV.(message.MultiMessage)
 		r.True(ok)
 		// raw stores the transfer encoding
-		msgv, err := multiMsg.ByType(gabbygrove.Proto)
+		msgv, err := multiMsg.ByType(message.Proto)
 		r.NoError(err)
 		tr := msgv.(*gabbygrove.Transfer)
 

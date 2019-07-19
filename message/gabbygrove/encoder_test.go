@@ -1,4 +1,4 @@
-package gabbygrove_test
+package gabbygrove
 
 import (
 	"bytes"
@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message/gabbygrove"
 )
 
 func TestEncoder(t *testing.T) {
@@ -21,17 +20,17 @@ func TestEncoder(t *testing.T) {
 
 	t.Log("kp:", kp.Id.Ref())
 
-	// authorRef, err := gabbygrove.FromRef(kp.Id)
+	// authorRef, err := FromRef(kp.Id)
 	// r.NoError(err)
 
 	// cref := &ssb.BlobRef{
 	// 	Hash: dead,
 	// 	Algo: "ofc.sha256",
 	// }
-	// payloadRef, err := gabbygrove.FromRef(cref)
+	// payloadRef, err := FromRef(cref)
 	// r.NoError(err)
 
-	fakeRef, _ := gabbygrove.FromRef(&ssb.MessageRef{
+	fakeRef, _ := fromRef(&ssb.MessageRef{
 		Hash: []byte("herberd"),
 		Algo: ssb.RefAlgoSHA256,
 	})
@@ -59,8 +58,8 @@ func TestEncoder(t *testing.T) {
 
 	for msgidx, msg := range msgs {
 
-		e := gabbygrove.NewEncoder(kp)
-		var prevRef *gabbygrove.BinaryRef
+		e := NewEncoder(kp)
+		var prevRef *BinaryRef
 		if msgidx != 0 {
 			prevRef = fakeRef
 		}
@@ -74,7 +73,7 @@ func TestEncoder(t *testing.T) {
 		a.Len(got, len(want[msgidx]), "msg[%02d] wrong msg length", msgidx)
 		a.Equal(want[msgidx], got, "msg[%02d] compare failed", msgidx)
 
-		var tr2 gabbygrove.Transfer
+		var tr2 Transfer
 		err = proto.Unmarshal(got, &tr2)
 		r.NoError(err, "msg[%02d] test decode failed", msgidx)
 		t.Logf("msg[%02d] transfer decode of %d bytes", msgidx, len(got))

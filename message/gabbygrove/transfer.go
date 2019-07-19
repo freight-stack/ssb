@@ -16,7 +16,7 @@ func (tr *Transfer) Verify() bool {
 	if err != nil {
 		return false
 	}
-	aref, err := evt.Author.GetRef(ssb.BinaryRefFeedGabby)
+	aref, err := evt.Author.GetRef(RefType_FeedRef)
 	if err != nil {
 		panic(err)
 	}
@@ -54,7 +54,7 @@ func (tr Transfer) Author() *ssb.FeedRef {
 	if err != nil {
 		panic(err)
 	}
-	aref, err := evt.Author.GetRef(ssb.BinaryRefFeedGabby)
+	aref, err := evt.Author.GetRef(RefType_FeedRef)
 	if err != nil {
 		panic(err)
 	}
@@ -66,7 +66,7 @@ func (tr Transfer) Previous() *ssb.MessageRef {
 	if err != nil {
 		panic(err)
 	}
-	mref, err := evt.Previous.GetRef(ssb.BinaryRefMessage)
+	mref, err := evt.Previous.GetRef(RefType_MessageRef)
 	if err != nil {
 		panic(err)
 	}
@@ -92,13 +92,13 @@ func (tr Transfer) ValueContent() *ssb.Value {
 	}
 	var msg ssb.Value
 	if evt.Previous != nil {
-		ref, err := evt.Previous.GetRef(ssb.BinaryRefMessage)
+		ref, err := evt.Previous.GetRef(RefType_MessageRef)
 		if err != nil {
 			panic(err)
 		}
 		msg.Previous = ref.(*ssb.MessageRef)
 	}
-	aref, err := evt.Author.GetRef(ssb.BinaryRefFeedGabby)
+	aref, err := evt.Author.GetRef(RefType_FeedRef)
 	if err != nil {
 		panic(err)
 	}

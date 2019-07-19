@@ -70,7 +70,7 @@ func (ld *protoDrain) verifyAndValidate(ctx context.Context, v interface{}) (*Tr
 	newSeq := tr.Seq()
 	if ld.latestSeq.Seq() > 1 {
 		// evt.Previous.GetRef(ssb.BinaryRefMessage)
-		prev, err := evt.Previous.GetRef(ssb.BinaryRefMessage)
+		prev, err := evt.Previous.GetRef(RefType_MessageRef)
 		if err != nil {
 			return nil, err
 		}

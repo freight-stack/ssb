@@ -62,12 +62,12 @@ func TestParseRef(t *testing.T) {
 	}
 }
 
-func TestBinaryRef(t *testing.T) {
+func TestStorageRef(t *testing.T) {
 	a := assert.New(t)
 	var tcases = []struct {
 		input []byte
 		want  string
-		tipe  BinaryRefType
+		tipe  StorageRefType
 		err   error
 	}{
 		{
@@ -79,19 +79,19 @@ func TestBinaryRef(t *testing.T) {
 			err:   ErrInvalidRefType,
 		},
 		{
-			input: []byte{byte(BinaryRefFeedLegacy), 201, 239, 144, 51, 79, 98, 61, 192, 201, 15, 166, 47, 65, 136, 232, 65, 206, 236, 44, 95, 200, 22, 25, 141, 108, 74, 160, 119, 52, 40, 222, 84},
+			input: []byte{byte(StorageRefFeedLegacy), 201, 239, 144, 51, 79, 98, 61, 192, 201, 15, 166, 47, 65, 136, 232, 65, 206, 236, 44, 95, 200, 22, 25, 141, 108, 74, 160, 119, 52, 40, 222, 84},
 			want:  "@ye+QM09iPcDJD6YvQYjoQc7sLF/IFhmNbEqgdzQo3lQ=.ed25519",
-			tipe:  BinaryRefFeedLegacy,
+			tipe:  StorageRefFeedLegacy,
 		},
 		{
-			input: []byte{byte(BinaryRefBlob), 243, 132, 146, 44, 219, 249, 97, 208, 213, 77, 212, 179, 55, 101, 117, 131, 54, 57, 205, 238, 37, 143, 171, 88, 22, 67, 114, 79, 227, 246, 241, 11},
+			input: []byte{byte(StorageRefBlob), 243, 132, 146, 44, 219, 249, 97, 208, 213, 77, 212, 179, 55, 101, 117, 131, 54, 57, 205, 238, 37, 143, 171, 88, 22, 67, 114, 79, 227, 246, 241, 11},
 			want:  "&84SSLNv5YdDVTdSzN2V1gzY5ze4lj6tYFkNyT+P28Qs=.sha256",
-			tipe:  BinaryRefBlob,
+			tipe:  StorageRefBlob,
 		},
 		{
-			input: []byte{byte(BinaryRefMessage), 218, 48, 235, 172, 145, 30, 27, 179, 208, 112, 34, 220, 138, 194, 18, 169, 170, 204, 110, 131, 105, 159, 12, 159, 196, 185, 240, 83, 88, 163, 58, 55},
+			input: []byte{byte(StorageRefMessage), 218, 48, 235, 172, 145, 30, 27, 179, 208, 112, 34, 220, 138, 194, 18, 169, 170, 204, 110, 131, 105, 159, 12, 159, 196, 185, 240, 83, 88, 163, 58, 55},
 			want:  "%2jDrrJEeG7PQcCLcisISqarMboNpnwyfxLnwU1ijOjc=.sha256",
-			tipe:  BinaryRefMessage,
+			tipe:  StorageRefMessage,
 		},
 
 		/*
@@ -106,7 +106,7 @@ func TestBinaryRef(t *testing.T) {
 		*/
 	}
 	for i, tc := range tcases {
-		var r BinaryRef
+		var r StorageRef
 
 		err := r.Unmarshal(tc.input)
 

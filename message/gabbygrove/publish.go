@@ -69,7 +69,7 @@ func (p *publish) Append(content interface{}) (margaret.Seq, error) {
 	}
 
 	// lookup key of current message for next previous field
-	var prev *ssb.BinaryRef
+	var prev *BinaryRef
 	if currSeq.Seq() > margaret.SeqEmpty.Seq() {
 		rootLogV, err := p.authorLog.Get(currSeq)
 		if err != nil {
@@ -91,7 +91,7 @@ func (p *publish) Append(content interface{}) (margaret.Seq, error) {
 			return nil, errors.Errorf("publish: unexpected stored type %T (root seq: %d)", currMsgV, rootLogSeq.Seq())
 		}
 
-		prev, err = ssb.FromRef(currMsg.Key())
+		prev, err = fromRef(currMsg.Key())
 		if err != nil {
 			return nil, errors.Wrap(err, "publish: failed to get key of curent msg")
 		}
@@ -110,7 +110,7 @@ func (p *publish) Append(content interface{}) (margaret.Seq, error) {
 	// mm.proto = tr
 	// mm.key = msgRef
 
-	seq, err := p.store.Append(&tr)
+	seq, err := p.store.Append(tr)
 	if err != nil {
 		return nil, errors.Wrap(err, "publish: to store encoded message")
 	}

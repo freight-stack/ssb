@@ -7,60 +7,60 @@ import (
 	"github.com/pkg/errors"
 )
 
-type BinaryRefType byte
+type StorageRefType byte
 
-// enum of BinaryRefTypes
+// enum of StorageRefTypes
 const (
-	BinaryRefUndefined BinaryRefType = iota
-	BinaryRefFeedLegacy
-	BinaryRefMessage
-	BinaryRefBlob
-	BinaryRefContent
-	BinaryRefFeedGabby
+	StorageRefUndefined StorageRefType = iota
+	StorageRefFeedLegacy
+	StorageRefMessage
+	StorageRefBlob
+	StorageRefContent
+	StorageRefFeedGabby
 )
 
-// BinaryRef is used as an compact internal storage representation
-type BinaryRef struct {
+// StorageRef is used as an compact internal storage representation
+type StorageRef struct {
 	fr *FeedRef
 	mr *MessageRef
 	br *BlobRef // payload/content ref
 }
 
-var _ Ref = (*BinaryRef)(nil)
+var _ Ref = (*StorageRef)(nil)
 
 // currently all references are 32bytes long
 // one additonal byte for tagging the type
 const binrefSize = 33
 
-func (ref BinaryRef) valid() (BinaryRefType, error) {
+func (ref StorageRef) valid() (StorageRefType, error) {
 	i := 0
-	var t BinaryRefType = BinaryRefUndefined
+	var t StorageRefType = StorageRefUndefined
 	if ref.fr != nil {
 		i++
 		switch ref.fr.Algo {
 		case RefAlgoProto:
-			t = BinaryRefFeedGabby
+			t = StorageRefFeedGabby
 		case RefAlgoEd25519:
-			t = BinaryRefFeedLegacy
+			t = StorageRefFeedLegacy
 		default:
-			return BinaryRefUndefined, ErrInvalidRef
+			return StorageRefUndefined, ErrInvalidRef
 		}
 	}
 	if ref.mr != nil {
 		i++
-		t = BinaryRefMessage
+		t = StorageRefMessage
 	}
 	if ref.br != nil {
 		i++
-		t = BinaryRefBlob
+		t = StorageRefBlob
 	}
 	if i > 1 {
-		return BinaryRefUndefined, errors.Errorf("more than one ref in binref")
+		return StorageRefUndefined, errors.Errorf("more than one ref in binref")
 	}
 	return t, nil
 }
 
-func (ref BinaryRef) Ref() string {
+func (ref StorageRef) Ref() string {
 	t, err := ref.valid()
 	if err != nil {
 		panic(err)
@@ -72,34 +72,34 @@ func (ref BinaryRef) Ref() string {
 	return r.Ref()
 }
 
-func (ref BinaryRef) Marshal() ([]byte, error) {
+func (ref StorageRef) Marshal() ([]byte, error) {
 	b := make([]byte, binrefSize)
 	n, err := ref.MarshalTo(b)
 	b = b[:n]
 	return b, err
 }
 
-func (ref *BinaryRef) MarshalTo(data []byte) (n int, err error) {
+func (ref *StorageRef) MarshalTo(data []byte) (n int, err error) {
 	t, err := ref.valid()
 	if err != nil {
 		return 0, err
 	}
 	switch t {
-	case BinaryRefFeedLegacy:
+	case StorageRefFeedLegacy:
 		copy(data, append([]byte{0x01}, ref.fr.ID...))
-	case BinaryRefMessage:
+	case StorageRefMessage:
 		copy(data, append([]byte{0x02}, ref.mr.Hash...))
-	case BinaryRefBlob:
+	case StorageRefBlob:
 		copy(data, append([]byte{0x03}, ref.br.Hash...))
-	// case BinaryRefFeedGabby:
-	// 	copy(data, append([]byte{0x05}, ref.fr.ID...))
+	case StorageRefFeedGabby:
+		copy(data, append([]byte{0x05}, ref.fr.ID...))
 	default:
 		return 0, errors.Wrapf(ErrInvalidRefType, "invalid binref type: %x", t)
 	}
 	return binrefSize, nil
 }
 
-func (ref *BinaryRef) Unmarshal(data []byte) error {
+func (ref *StorageRef) Unmarshal(data []byte) error {
 	if n := len(data); n != binrefSize {
 		return ErrRefLen{algo: "unknown", n: n}
 	}
@@ -125,11 +125,11 @@ func (ref *BinaryRef) Unmarshal(data []byte) error {
 	return nil
 }
 
-func (ref *BinaryRef) Size() int {
+func (ref *StorageRef) Size() int {
 	return binrefSize
 }
 
-func (ref BinaryRef) MarshalJSON() ([]byte, error) {
+func (ref StorageRef) MarshalJSON() ([]byte, error) {
 	if ref.fr != nil {
 		return bytestr(ref.fr), nil
 	}
@@ -146,12 +146,12 @@ func bytestr(r Ref) []byte {
 	return []byte("\"" + r.Ref() + "\"")
 }
 
-func (ref *BinaryRef) UnmarshalJSON(data []byte) error {
+func (ref *StorageRef) UnmarshalJSON(data []byte) error {
 	spew.Dump(ref)
 	return errors.Errorf("TODO:json")
 }
 
-func (ref BinaryRef) GetRef(t BinaryRefType) (Ref, error) {
+func (ref StorageRef) GetRef(t StorageRefType) (Ref, error) {
 	hasT, err := ref.valid()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRef: invalid reference")
@@ -163,11 +163,11 @@ func (ref BinaryRef) GetRef(t BinaryRefType) (Ref, error) {
 	// but then we still have to assert afterwards if it really is what we want
 	var ret Ref
 	switch t {
-	case BinaryRefFeedLegacy:
+	case StorageRefFeedLegacy:
 		ret = ref.fr
-	case BinaryRefMessage:
+	case StorageRefMessage:
 		ret = ref.mr
-	case BinaryRefBlob:
+	case StorageRefBlob:
 		ret = ref.br
 	default:
 		return nil, errors.Wrapf(ErrInvalidRefType, "invalid binref type: %x", t)
@@ -175,25 +175,16 @@ func (ref BinaryRef) GetRef(t BinaryRefType) (Ref, error) {
 	return ret, nil
 }
 
-func FromFeedRef(r *FeedRef) (*BinaryRef, error) {
-	if ref := r.Ref(); len(ref) < 53 {
-		return nil, errors.Errorf("what ref?")
-	}
-	return &BinaryRef{
-		fr: r,
-	}, nil
-}
-
-func FromRefString(s string) (*BinaryRef, error) {
+func NewStorageRefFromString(s string) (*StorageRef, error) {
 	r, err := ParseRef(s)
 	if err != nil {
 		return nil, errors.Wrap(err, "binref: not a ssb ref")
 	}
-	return FromRef(r)
+	return NewStorageRef(r)
 }
 
-func FromRef(r Ref) (*BinaryRef, error) {
-	var br BinaryRef
+func NewStorageRef(r Ref) (*StorageRef, error) {
+	var br StorageRef
 	switch tr := r.(type) {
 	case *FeedRef:
 		br.fr = tr

@@ -26,8 +26,9 @@ func (wl WrappedLog) Append(val interface{}) (margaret.Seq, error) {
 
 	abs, ok := val.(ssb.Message)
 	if !ok {
-		errors.Errorf("wrappedLog: not a ssb.Message: %T", val)
+		return margaret.SeqEmpty, errors.Errorf("wrappedLog: not a ssb.Message: %T", val)
 	}
+
 	mm.key = abs.Key()
 
 	switch tv := val.(type) {
