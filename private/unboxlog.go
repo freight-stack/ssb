@@ -61,7 +61,7 @@ func (il unboxedLog) Query(args ...margaret.QuerySpec) (luigi.Source, error) {
 			return nil, errors.Errorf("wrong message type. expected %T - got %T", amsg, val)
 		}
 
-		clearContent, err := Unbox(il.kp, string(amsg.Content()))
+		clearContent, err := Unbox(il.kp, string(amsg.ContentBytes()))
 		if err != nil {
 			return nil, errors.Wrap(err, "unboxLog: unbox failed")
 		}

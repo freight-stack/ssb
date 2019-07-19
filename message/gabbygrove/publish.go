@@ -69,7 +69,7 @@ func (p *publish) Append(content interface{}) (margaret.Seq, error) {
 	}
 
 	// lookup key of current message for next previous field
-	var prev *BinaryRef
+	var prev *ssb.BinaryRef
 	if currSeq.Seq() > margaret.SeqEmpty.Seq() {
 		rootLogV, err := p.authorLog.Get(currSeq)
 		if err != nil {
@@ -91,7 +91,7 @@ func (p *publish) Append(content interface{}) (margaret.Seq, error) {
 			return nil, errors.Errorf("publish: unexpected stored type %T (root seq: %d)", currMsgV, rootLogSeq.Seq())
 		}
 
-		prev, err = FromRef(currMsg.Key())
+		prev, err = ssb.FromRef(currMsg.Key())
 		if err != nil {
 			return nil, errors.Wrap(err, "publish: failed to get key of curent msg")
 		}
@@ -99,17 +99,18 @@ func (p *publish) Append(content interface{}) (margaret.Seq, error) {
 
 	// +2 because we want the first message to be 1
 	nextSeq := uint64(currSeq.Seq()) + 2
-	tr, msgRef, err := p.enc.Encode(nextSeq, prev, content)
+	tr, _, err := p.enc.Encode(nextSeq, prev, content)
 	if err != nil {
 		return nil, errors.Wrap(err, "publish: failed to encode content")
 	}
 
-	var mm MultiMessage
-	mm.tipe = Proto
-	mm.proto = tr
-	mm.key = msgRef
+	// TODO: make multi-message in root append
+	// var mm message.MultiMessage
+	// mm.tipe = message.Proto
+	// mm.proto = tr
+	// mm.key = msgRef
 
-	seq, err := p.store.Append(mm)
+	seq, err := p.store.Append(&tr)
 	if err != nil {
 		return nil, errors.Wrap(err, "publish: to store encoded message")
 	}

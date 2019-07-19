@@ -23,7 +23,7 @@ type protoEnc struct {
 	kp *ssb.KeyPair
 }
 
-func (e *protoEnc) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Transfer, *ssb.MessageRef, error) {
+func (e *protoEnc) Encode(sequence uint64, prev *ssb.BinaryRef, val interface{}) (*Transfer, *ssb.MessageRef, error) {
 	contentHash := sha256.New()
 	buf := &bytes.Buffer{}
 	w := io.MultiWriter(contentHash, buf)
@@ -50,12 +50,12 @@ func (e *protoEnc) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*T
 	evt.Sequence = sequence
 
 	var err error
-	evt.Author, err = FromRef(e.kp.Id)
+	evt.Author, err = ssb.FromRef(e.kp.Id)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "invalid author ref")
 	}
 	evt.Content = &Event_Content{}
-	evt.Content.Hash, err = FromRef(&ssb.BlobRef{
+	evt.Content.Hash, err = ssb.FromRef(&ssb.BlobRef{
 		Hash: contentHash.Sum(nil),
 		Algo: ssb.RefAlgoSHA256,
 	})

@@ -2,6 +2,7 @@ package gabbygrove
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"go.cryptoscope.co/margaret"
@@ -15,7 +16,12 @@ func (tr *Transfer) Verify() bool {
 	if err != nil {
 		return false
 	}
-	pubKey := evt.Author.fr.ID
+	aref, err := evt.Author.GetRef(ssb.BinaryRefFeedGabby)
+	if err != nil {
+		panic(err)
+	}
+
+	pubKey := aref.(*ssb.FeedRef).ID
 	return ed25519.Verify(pubKey, tr.Event, tr.Signature)
 }
 
@@ -32,6 +38,8 @@ func (tr *Transfer) getEvent() (*Event, error) {
 	return &evt, nil
 }
 
+var _ ssb.Message = (*Transfer)(nil)
+
 func (tr *Transfer) Seq() int64 {
 	evt, err := tr.getEvent()
 	if err != nil {
@@ -41,9 +49,41 @@ func (tr *Transfer) Seq() int64 {
 	return int64(evt.Sequence)
 }
 
-// func (tr Transfer) Previous() *ssb.MessageRef {
-// 	return tr.Previous
-// }
+func (tr Transfer) Author() *ssb.FeedRef {
+	evt, err := tr.getEvent()
+	if err != nil {
+		panic(err)
+	}
+	aref, err := evt.Author.GetRef(ssb.BinaryRefFeedGabby)
+	if err != nil {
+		panic(err)
+	}
+	return aref.(*ssb.FeedRef)
+}
+
+func (tr Transfer) Previous() *ssb.MessageRef {
+	evt, err := tr.getEvent()
+	if err != nil {
+		panic(err)
+	}
+	mref, err := evt.Previous.GetRef(ssb.BinaryRefMessage)
+	if err != nil {
+		panic(err)
+	}
+	return mref.(*ssb.MessageRef)
+}
+
+func (tr Transfer) Timestamp() time.Time {
+	evt, err := tr.getEvent()
+	if err != nil {
+		panic(err)
+	}
+	return time.Unix(int64(evt.Timestamp), 0)
+}
+
+func (tr Transfer) ContentBytes() []byte {
+	return tr.Content
+}
 
 func (tr Transfer) ValueContent() *ssb.Value {
 	evt, err := tr.getEvent()
@@ -52,9 +92,17 @@ func (tr Transfer) ValueContent() *ssb.Value {
 	}
 	var msg ssb.Value
 	if evt.Previous != nil {
-		msg.Previous = evt.Previous.mr
+		ref, err := evt.Previous.GetRef(ssb.BinaryRefMessage)
+		if err != nil {
+			panic(err)
+		}
+		msg.Previous = ref.(*ssb.MessageRef)
 	}
-	msg.Author = *evt.Author.fr
+	aref, err := evt.Author.GetRef(ssb.BinaryRefFeedGabby)
+	if err != nil {
+		panic(err)
+	}
+	msg.Author = *aref.(*ssb.FeedRef)
 	msg.Sequence = margaret.BaseSeq(evt.Sequence)
 	msg.Hash = "sha256"
 	// msg.Timestamp = float64(sm.Timestamp.Unix() * 1000)

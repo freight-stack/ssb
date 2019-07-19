@@ -1,4 +1,4 @@
-package gabbygrove
+package message
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"github.com/ugorji/go/codec"
 
 	"go.cryptoscope.co/ssb"
+	"go.cryptoscope.co/ssb/message/gabbygrove"
 	"go.cryptoscope.co/ssb/message/legacy"
 )
 
@@ -28,7 +29,7 @@ const (
 type MultiMessage struct {
 	tipe   MessageType
 	key    *ssb.MessageRef
-	proto  *Transfer
+	proto  *gabbygrove.Transfer
 	legacy *legacy.StoredMessage
 }
 
@@ -77,7 +78,7 @@ func (mm *MultiMessage) UnmarshalBinary(data []byte) error {
 		mm.legacy = &msg
 		mm.key = msg.Key_
 	case Proto:
-		var tr Transfer
+		var tr gabbygrove.Transfer
 		err := proto.Unmarshal(data[1:], &tr)
 		if err != nil {
 			return errors.Wrap(err, "multiMessage: proto decoding failed")
@@ -112,11 +113,7 @@ func (mm MultiMessage) Author() *ssb.FeedRef {
 	case Legacy:
 		return mm.legacy.Author()
 	case Proto:
-		evt, err := mm.proto.getEvent()
-		if err != nil {
-			return nil
-		}
-		return evt.Author.fr
+		return mm.proto.Author()
 	}
 	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
 }
@@ -126,11 +123,7 @@ func (mm MultiMessage) Previous() *ssb.MessageRef {
 	case Legacy:
 		return mm.legacy.Previous()
 	case Proto:
-		evt, err := mm.proto.getEvent()
-		if err != nil {
-			return nil
-		}
-		return evt.Previous.mr
+		return mm.proto.Previous()
 	}
 	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
 }
@@ -140,21 +133,17 @@ func (mm MultiMessage) Timestamp() time.Time {
 	case Legacy:
 		return mm.legacy.Timestamp()
 	case Proto:
-		evt, err := mm.proto.getEvent()
-		if err != nil {
-			panic(err)
-		}
-		return time.Unix(int64(evt.Timestamp), 0)
+		return mm.proto.Timestamp()
 	}
 	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
 }
 
-func (mm MultiMessage) Content() []byte {
+func (mm MultiMessage) ContentBytes() []byte {
 	switch mm.tipe {
 	case Legacy:
-		return mm.legacy.Content()
+		return mm.legacy.ContentBytes()
 	case Proto:
-		return mm.proto.Content
+		return mm.proto.ContentBytes()
 	}
 	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
 }

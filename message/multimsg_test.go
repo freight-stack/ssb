@@ -1,4 +1,4 @@
-package gabbygrove
+package message
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
+	"go.cryptoscope.co/ssb/message/gabbygrove"
 	"go.cryptoscope.co/ssb/message/legacy"
 )
 
@@ -51,24 +52,24 @@ func TestMultiMsgProto(t *testing.T) {
 	kp, err := ssb.NewKeyPair(bytes.NewReader(dead))
 	r.NoError(err)
 
-	authorRef, err := FromRef(kp.Id)
+	authorRef, err := ssb.FromRef(kp.Id)
 	r.NoError(err)
 
 	cref := &ssb.BlobRef{
 		Hash: dead,
 		Algo: "ofc.sha256",
 	}
-	payloadRef, err := FromRef(cref)
+	payloadRef, err := ssb.FromRef(cref)
 	r.NoError(err)
 
 	now1 := uint64(time.Unix(631249445, 0).Unix())
-	var evt = &Event{
+	var evt = &gabbygrove.Event{
 		Author:   authorRef,
 		Sequence: 123,
-		Content: &Event_Content{
+		Content: &gabbygrove.Event_Content{
 			Hash:  payloadRef,
 			Size_: 23,
-			Type:  ContentType_JSON,
+			Type:  gabbygrove.ContentType_JSON,
 		},
 		Timestamp: now1,
 	}
@@ -77,7 +78,7 @@ func TestMultiMsgProto(t *testing.T) {
 	r.NoError(err)
 
 	testContent := []byte("someContent")
-	tr := &Transfer{
+	tr := &gabbygrove.Transfer{
 		Event:     evtBytes,
 		Signature: []byte("none"),
 		Content:   testContent,
@@ -99,7 +100,7 @@ func TestMultiMsgProto(t *testing.T) {
 	r.Equal(Proto, mm2.tipe)
 	r.Equal(testContent, mm2.proto.Content)
 	r.Equal([]byte("none"), mm2.proto.Signature)
-	evt2, err := mm2.proto.getEvent()
+	evt2, err := mm2.proto.UnmarshaledEvent()
 	r.NoError(err)
 	r.Equal(uint64(123), evt2.Sequence)
 }

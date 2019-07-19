@@ -57,7 +57,7 @@ func (sm StoredMessage) Timestamp() time.Time {
 	return sm.Timestamp_
 }
 
-func (sm StoredMessage) Content() []byte {
+func (sm StoredMessage) ContentBytes() []byte {
 	var c struct {
 		Content json.RawMessage `json:"content"`
 	}

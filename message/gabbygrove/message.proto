@@ -3,7 +3,7 @@ package gabbygrove;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-option go_package = "protochain";
+option go_package = "gabbygrove";
 
 enum RefType {
     Undefined = 0;
@@ -20,8 +20,8 @@ enum ContentType {
 }
 
 message Event {
-  bytes previous   = 1 [(gogoproto.customtype) = "BinaryRef"];
-  bytes author     = 2 [(gogoproto.customtype) = "BinaryRef"];
+  bytes previous   = 1 [(gogoproto.customtype) = "go.cryptoscope.co/ssb.BinaryRef"];
+  bytes author     = 2 [(gogoproto.customtype) = "go.cryptoscope.co/ssb.BinaryRef"];
   uint64 sequence  = 3;
   Content content  = 4;
   uint64 timestamp = 5;
@@ -29,7 +29,7 @@ message Event {
   message Content {
     ContentType type = 1;
     uint64 size = 2;
-    bytes hash = 3 [(gogoproto.customtype) = "BinaryRef"];
+    bytes hash = 3 [(gogoproto.customtype) = "go.cryptoscope.co/ssb.BinaryRef"];
   }
 }
 

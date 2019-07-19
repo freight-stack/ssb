@@ -31,7 +31,7 @@ type Message interface {
 	//Time() time.Time?
 
 	Author() *FeedRef
-	Content() []byte
+	ContentBytes() []byte
 
 	ValueContent() *Value
 	ValueContentJSON() json.RawMessage

@@ -47,7 +47,7 @@ func (ld *protoDrain) Pour(ctx context.Context, v interface{}) error {
 	return nil
 }
 
-func (ld *protoDrain) verifyAndValidate(ctx context.Context, v interface{}) (*MultiMessage, error) {
+func (ld *protoDrain) verifyAndValidate(ctx context.Context, v interface{}) (*Transfer, error) {
 	trBytes, ok := v.([]uint8)
 	if !ok {
 		return nil, errors.Errorf("protoStream: expected %T - got %T", trBytes, v)
@@ -70,7 +70,12 @@ func (ld *protoDrain) verifyAndValidate(ctx context.Context, v interface{}) (*Mu
 
 	newSeq := tr.Seq()
 	if ld.latestSeq.Seq() > 1 {
-		if bytes.Compare(ld.latestMsg.Key().Hash, evt.Previous.mr.Hash) != 0 {
+		// evt.Previous.GetRef(ssb.BinaryRefMessage)
+		prev, err := evt.Previous.GetRef(ssb.BinaryRefMessage)
+		if err != nil {
+			return nil, err
+		}
+		if bytes.Compare(ld.latestMsg.Key().Hash, prev.(ssb.MessageRef).Hash) != 0 {
 			return nil, errors.Errorf("protoStream(%s:%d): previous compare failed expected:%s incoming:%s",
 				ld.who.Ref(),
 				ld.latestSeq,
@@ -83,11 +88,11 @@ func (ld *protoDrain) verifyAndValidate(ctx context.Context, v interface{}) (*Mu
 		}
 	}
 
-	var mm MultiMessage
-	mm.key = tr.Key()
-	mm.tipe = Proto
-	mm.proto = &tr
-	return &mm, nil
+	// var mm message.MultiMessage
+	// mm.key = tr.Key()
+	// mm.tipe = Proto
+	// mm.proto = &tr
+	return &tr, nil
 }
 
 func (ld protoDrain) Close() error {
