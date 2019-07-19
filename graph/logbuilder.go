@@ -103,7 +103,7 @@ func (b *logBuilder) Build() (*Graph, error) {
 		}
 
 		var c ssb.Contact
-		err = json.Unmarshal(abs.Content(), &c)
+		err = json.Unmarshal(abs.ContentBytes(), &c)
 		if err != nil {
 			err = errors.Wrapf(err, "db/idx contacts: first json unmarshal failed (msg: %s)", abs.Key().Ref())
 			fmt.Fprintln(os.Stderr, "===> DEBUG\nmsg", "skipped contact message", "reason", err)

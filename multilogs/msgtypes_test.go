@@ -202,7 +202,7 @@ func makeCompareSink(texpected []string, rootLog margaret.Log) (luigi.FuncSink, 
 		m := make(map[string]interface{})
 
 		abs := v.(ssb.Message)
-		err = json.Unmarshal(abs.Content(), &m)
+		err = json.Unmarshal(abs.ContentBytes(), &m)
 		if err != nil {
 			return errors.Errorf("error decoding stored message %q", v)
 		}

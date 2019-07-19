@@ -70,7 +70,7 @@ func NewBuilder(log kitlog.Logger, db *badger.DB) Builder {
 		}
 
 		var c ssb.Contact
-		err := json.Unmarshal(abs.Content(), &c)
+		err := json.Unmarshal(abs.ContentBytes(), &c)
 		if err != nil {
 			err = errors.Wrapf(err, "db/idx contacts: first json unmarshal failed (msg: %v)", abs.Key())
 			log.Log("msg", "skipped contact message", "reason", err)

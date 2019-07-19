@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.cryptoscope.co/margaret"
-	"go.cryptoscope.co/ssb/message/gabbygrove"
 
 	"go.cryptoscope.co/ssb"
+	"go.cryptoscope.co/ssb/message/gabbygrove"
 	"go.cryptoscope.co/ssb/repo"
 )
 
@@ -54,7 +54,7 @@ func XTestOffchainSimple(t *testing.T) {
 	authorLog, err := userFeeds.Get(testAuthor.Id.StoredAddr())
 	r.NoError(err)
 
-	w, err := protochain.NewPublisher(rl, userFeeds, testAuthor)
+	w, err := gabbygrove.NewPublisher(rl, userFeeds, testAuthor)
 	r.NoError(err)
 
 	var tmsgs = []interface{}{
@@ -93,7 +93,7 @@ func XTestOffchainSimple(t *testing.T) {
 		r.NoError(err)
 		storedMsg, ok := storedV.(ssb.Message)
 		r.True(ok)
-		t.Logf("msg:%d\n%s", i, storedMsg.Content())
+		t.Logf("msg:%d\n%s", i, storedMsg.ContentBytes())
 		a.NotNil(storedMsg.Key(), "msg:%d - key", i)
 		/* TODO:
 		if i != 0 {

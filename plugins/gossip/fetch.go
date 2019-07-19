@@ -17,8 +17,8 @@ import (
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/graph"
 	"go.cryptoscope.co/ssb/message"
-	"go.cryptoscope.co/ssb/message/legacy"
 	"go.cryptoscope.co/ssb/message/gabbygrove"
+	"go.cryptoscope.co/ssb/message/legacy"
 )
 
 type ErrWrongSequence struct {
@@ -193,7 +193,7 @@ func (g *handler) fetchFeed(ctx context.Context, fr *ssb.FeedRef, edp muxrpc.End
 	if fr.Algo == ssb.RefAlgoProto {
 		source, err = edp.Source(toLong, codec.Body{}, muxrpc.Method{"protochain", "binaryStream"}, q)
 
-		snk = protochain.NewStreamDrain(fr, latestSeq, latestMsg, g.RootLog) //, g.hmacSec)
+		snk = gabbygrove.NewStreamDrain(fr, latestSeq, latestMsg, g.RootLog) //, g.hmacSec)
 	} else {
 		source, err = edp.Source(toLong, json.RawMessage{}, muxrpc.Method{"createHistoryStream"}, q)
 
@@ -232,9 +232,7 @@ func (ld *legacyDrain) Pour(ctx context.Context, v interface{}) error {
 		return err
 	}
 
-	mm := protochain.NewMultiMessageFromLegacy(nextMsg)
-
-	_, err = ld.rootLog.Append(mm)
+	_, err = ld.rootLog.Append(nextMsg)
 	if err != nil {
 		return errors.Wrapf(err, "fetchFeed(%s): failed to append message(%s:%d)", ld.who.Ref(), nextMsg.Key().Ref(), nextMsg.Seq())
 	}

@@ -33,7 +33,7 @@ func OpenPrivateRead(log kitlog.Logger, r repo.Interface, kp *ssb.KeyPair) (mult
 			return err
 		}
 
-		if _, err := private.Unbox(kp, string(msg.Content())); err != nil {
+		if _, err := private.Unbox(kp, string(msg.ContentBytes())); err != nil {
 			return nil
 		}
 

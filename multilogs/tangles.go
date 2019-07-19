@@ -37,7 +37,7 @@ func OpenTangles(r repo.Interface) (multilog.MultiLog, *badger.DB, repo.ServeFun
 			Root *ssb.MessageRef
 		}
 
-		err := json.Unmarshal(msg.Content(), &value)
+		err := json.Unmarshal(msg.ContentBytes(), &value)
 		// TODO: maybe check error with more detail - i.e. only drop type errors
 		if err != nil || value.Root == nil {
 			return nil

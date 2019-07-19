@@ -16,8 +16,8 @@ import (
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/internal/mutil"
+	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/private"
-	"go.cryptoscope.co/ssb/message/gabbygrove"
 )
 
 func TestOffchainSync(t *testing.T) {
@@ -123,10 +123,10 @@ func TestOffchainSync(t *testing.T) {
 		} else if err != nil {
 			r.NoError(err)
 		}
-		msg, ok := v.(protochain.MultiMessage)
+		msg, ok := v.(message.MultiMessage)
 		r.True(ok, "Type: %T", v)
 		// t.Log(msg)
-		_, err = msg.ByType(protochain.Proto)
+		_, err = msg.ByType(message.Proto)
 		r.NoError(err)
 		// a.True(msg.Author.Offchain)
 		// a.NotEmpty(msg.Offchain)
@@ -247,7 +247,7 @@ func TestOffchainPrivate(t *testing.T) {
 			continue // contact msg
 		}
 
-		oc := string(msg.Content())
+		oc := string(msg.ContentBytes())
 		t.Log(oc)
 		unboxed, err := private.Unbox(ali.KeyPair, oc)
 		if !a.NoError(err) {

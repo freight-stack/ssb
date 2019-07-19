@@ -65,7 +65,7 @@ func TestPublishUnicode(t *testing.T) {
 		}
 		sm := v.(ssb.Message)
 		var p post
-		c := sm.Content()
+		c := sm.ContentBytes()
 		err = json.Unmarshal(c, &p)
 		r.NoError(err)
 		r.Equal(newMsg.Text, p.Text)

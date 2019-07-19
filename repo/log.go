@@ -17,5 +17,6 @@ func OpenLog(r Interface, path ...string) (margaret.Log, error) {
 
 	// TODO use proper log message type here
 	log, err := offset2.Open(r.GetPath(path...), msgpack.New(&message.MultiMessage{}))
+	log = message.NewWrappedLog(log)
 	return log, errors.Wrap(err, "failed to open log")
 }

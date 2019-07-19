@@ -89,7 +89,7 @@ func TestSignMessages(t *testing.T) {
 		r.NoError(err)
 		storedMsg, ok := storedV.(ssb.Message)
 		r.True(ok)
-		t.Logf("msg:%d\n%s", i, storedMsg.Content())
+		t.Logf("msg:%d\n%s", i, storedMsg.ContentBytes())
 		a.NotNil(storedMsg.Key(), "msg:%d - key", i)
 		if i != 0 {
 			// a.NotNil(storedMsg.Previous, "msg:%d - previous", i)

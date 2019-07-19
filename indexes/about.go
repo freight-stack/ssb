@@ -131,7 +131,7 @@ func updateAboutMessage(ctx context.Context, seq margaret.Seq, val interface{}, 
 	}
 
 	var aboutMSG ssb.About
-	err := json.Unmarshal(msg.Content(), &aboutMSG)
+	err := json.Unmarshal(msg.ContentBytes(), &aboutMSG)
 	if err != nil {
 		if ssb.IsMessageUnusable(err) {
 			return nil

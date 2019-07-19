@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"go.cryptoscope.co/ssb/message/gabbygrove"
-
 	"github.com/cryptix/go/logging"
 	"github.com/pkg/errors"
 	"go.cryptoscope.co/librarian"
@@ -19,6 +17,7 @@ import (
 	"go.cryptoscope.co/ssb/graph"
 	"go.cryptoscope.co/ssb/internal/mutil"
 	"go.cryptoscope.co/ssb/message"
+	"go.cryptoscope.co/ssb/message/gabbygrove"
 	"go.cryptoscope.co/ssb/plugins/gossip"
 )
 
@@ -170,15 +169,15 @@ func (h *handler) pourFeed(ctx context.Context, req *muxrpc.Request) error {
 			if err != nil {
 				return err
 			}
-			mm, ok := v.(protochain.MultiMessage)
+			mm, ok := v.(message.MultiMessage)
 			if !ok {
 				return errors.Errorf("binStream: expected []byte - got %T", v)
 			}
-			mmv, err := mm.ByType(protochain.Proto)
+			mmv, err := mm.ByType(message.Proto)
 			if err != nil {
 				return errors.Wrap(err, "wrong mm type")
 			}
-			p := mmv.(*protochain.Transfer)
+			p := mmv.(*gabbygrove.Transfer)
 			trdata, err := p.Marshal()
 			if err != nil {
 				return errors.Wrap(err, "failed to marshal transfer")

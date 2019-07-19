@@ -35,7 +35,7 @@ func OpenMessageTypes(r repo.Interface) (multilog.MultiLog, *badger.DB, repo.Ser
 			Type string
 		}
 
-		err := json.Unmarshal(msg.Content(), &typeMsg)
+		err := json.Unmarshal(msg.ContentBytes(), &typeMsg)
 		typeStr := typeMsg.Type
 		// TODO: maybe check error with more detail - i.e. only drop type errors
 		if err != nil || typeStr == "" {
