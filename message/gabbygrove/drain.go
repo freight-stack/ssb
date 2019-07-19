@@ -62,13 +62,22 @@ func (ld *protoDrain) verifyAndValidate(ctx context.Context, v interface{}) (*Tr
 		return nil, errors.Wrapf(err, "protoStream(%s:%d): transfer verify failed", ld.who.Ref(), ld.latestSeq)
 	}
 
+	// access author, previous and sequence
 	evt, err := tr.getEvent()
 	if err != nil {
 		return nil, errors.Wrapf(err, "protoStream(%s:%d): event decoding failed", ld.who.Ref(), ld.latestSeq)
 	}
 
+	if !bytes.Equal(evt.Author.fr.ID, ld.who.ID) {
+		return nil, errors.Errorf("protoStream(%s:%d): wrong author: %s", ld.who.Ref(), ld.latestSeq, evt.Author.fr.Ref())
+	}
+
 	newSeq := tr.Seq()
 	if ld.latestSeq.Seq() > 1 {
+		if evt.Previous == nil {
+			return nil, errors.Errorf("protoStream(%s:%d): needs previous", ld.who.Ref(), ld.latestSeq)
+		}
+
 		prev, err := evt.Previous.GetRef(RefType_MessageRef)
 		if err != nil {
 			return nil, err

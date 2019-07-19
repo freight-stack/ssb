@@ -157,7 +157,7 @@ func TestContentFeedFromGo(t *testing.T) {
 		// },1000)
 	})
 	
-	run()
+	setTimeout(run, 3000) // give go bot a moment to publish
 	// sbot.publish({type: 'contact', contact: fromKey, following: true}, function(err, msg) {
 	// 	t.error(err, 'follow:' + fromKey)
 
@@ -204,6 +204,8 @@ func TestContentFeedFromGo(t *testing.T) {
 		r.NoError(err, "failed to publish test message %d", i)
 		r.NotNil(newSeq)
 	}
+
+	// test is currently borked because we get fake messages back
 
 	<-ts.doneJS
 
