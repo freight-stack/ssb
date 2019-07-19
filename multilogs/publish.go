@@ -2,7 +2,6 @@ package multilogs
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -107,8 +106,6 @@ func (pl *publishLog) Append(val interface{}) (margaret.Seq, error) {
 		return nil, errors.Wrap(err, "failed to append new msg")
 	}
 
-	log.Println("[info] new message")
-	log.Println(stored)
 	return newMsg.Sequence - 1, nil
 }
 

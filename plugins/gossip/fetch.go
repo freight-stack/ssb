@@ -239,7 +239,6 @@ func (ld *legacyDrain) Pour(ctx context.Context, v interface{}) error {
 
 	ld.latestSeq = nextMsg
 	ld.latestMsg = nextMsg
-	fmt.Println("poured legacyDrain", ld.latestSeq)
 	return nil
 }
 

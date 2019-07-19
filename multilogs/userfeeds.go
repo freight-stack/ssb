@@ -2,7 +2,6 @@ package multilogs
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/dgraph-io/badger"
 	"github.com/pkg/errors"
@@ -35,7 +34,6 @@ func OpenUserFeeds(r repo.Interface) (multilog.MultiLog, *badger.DB, repo.ServeF
 		}
 
 		_, err = authorLog.Append(seq)
-		fmt.Println("userFeed updated:", author.Ref(), seq)
 		return errors.Wrap(err, "error appending new author message")
 	})
 }

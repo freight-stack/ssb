@@ -180,7 +180,6 @@ func FromFeedRef(r *FeedRef) (*BinaryRef, error) {
 		return nil, errors.Errorf("what ref?")
 	}
 	return &BinaryRef{
-		// t: BinaryRefFeedGabby,
 		fr: r,
 	}, nil
 }

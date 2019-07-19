@@ -43,7 +43,6 @@ func (ld *protoDrain) Pour(ctx context.Context, v interface{}) error {
 
 	ld.latestSeq = margaret.BaseSeq(nextMsg.Seq())
 	ld.latestMsg = nextMsg
-	fmt.Println("poured protoDrain", ld.latestSeq)
 	return nil
 }
 
