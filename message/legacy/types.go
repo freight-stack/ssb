@@ -14,12 +14,24 @@ import (
 )
 
 type DeserializedMessage struct {
-	Previous  ssb.MessageRef   `json:"previous"`
+	Previous  *ssb.MessageRef  `json:"previous"`
 	Author    ssb.FeedRef      `json:"author"`
 	Sequence  margaret.BaseSeq `json:"sequence"`
 	Timestamp float64          `json:"timestamp"`
 	Hash      string           `json:"hash"`
 	Content   json.RawMessage  `json:"content"`
+}
+
+func (dm DeserializedMessage) AsMessage() ssb.Message {
+	raw, _ := json.Marshal(dm)
+
+	return StoredMessage{
+		Previous_: dm.Previous,
+		Author_:   &dm.Author,
+		Sequence_: dm.Sequence,
+		// Timestamp_: time.Unix(int64(dm.Timestamp/1000.0), 0),
+		Raw_: raw,
+	}
 }
 
 type LegacyMessage struct {

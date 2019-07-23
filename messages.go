@@ -1,6 +1,7 @@
 package ssb
 
 import (
+	"bytes"
 	"encoding/json"
 	"time"
 
@@ -35,6 +36,38 @@ type Message interface {
 
 	ValueContent() *Value
 	ValueContentJSON() json.RawMessage
+}
+
+// ValidateNext checks the author stays the same across the feed,
+// that he previous hash is correct and that the sequence number is increasing correctly
+// TODO: move all the message's publish and drains to it's own package
+func ValidateNext(current, next Message) error {
+	if current != nil {
+		author := current.Author()
+
+		if !author.Equal(next.Author()) {
+			return errors.Errorf("ValidateNext(%s:%d): wrong author: %s", author.Ref(), current.Seq(), next.Author().Ref())
+		}
+
+		if bytes.Compare(current.Key().Hash, next.Previous().Hash) != 0 {
+			return errors.Errorf("ValidateNext(%s:%d): previous compare failed expected:%s incoming:%s",
+				author.Ref(),
+				current.Seq(),
+				current.Key().Ref(),
+				next.Previous().Ref(),
+			)
+		}
+		if current.Seq()+1 != next.Seq() {
+			return errors.Errorf("ValidateNext(%s:%d): next.seq != curr.seq+1", author.Ref(), current.Seq())
+		}
+
+	} else { // first message
+		if next.Seq() != 1 {
+			return errors.Errorf("ValidateNext(%s:%d): first message has to have sequence 1", next.Author().Ref(), next.Seq())
+		}
+	}
+
+	return nil
 }
 
 type Contact struct {

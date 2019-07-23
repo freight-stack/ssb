@@ -185,6 +185,8 @@ func (mm MultiMessage) Seq() int64 {
 		return mm.legacy.Seq()
 	case Proto:
 		return mm.proto.Seq()
+	case Gabby:
+		return mm.gabby.Seq()
 	}
 	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
 }

@@ -217,6 +217,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		if s.promisc {
 			return pmgr.MakeHandler(conn)
 		}
+
 		// start := time.Now()
 		err = auth.Authorize(remote)
 		// if s.latency != nil {

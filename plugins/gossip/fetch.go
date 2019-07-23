@@ -1,7 +1,6 @@
 package gossip
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -17,8 +16,6 @@ import (
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/graph"
 	"go.cryptoscope.co/ssb/message"
-	"go.cryptoscope.co/ssb/message/legacy"
-	"go.cryptoscope.co/ssb/message/protochain"
 )
 
 type ErrWrongSequence struct {
@@ -182,7 +179,7 @@ func (g *handler) fetchFeed(
 	}
 
 	startSeq := latestSeq
-	info := log.With(g.Info, "fr", fr.Ref(), "latest", startSeq) // "me", g.Id.Ref(), "from", ...)
+	info := log.With(g.Info, "fr", fr.Ref(), "latest", startSeq, "me", g.Id.Ref())
 
 	var q = message.CreateHistArgs{
 		Id:    fr.Ref(),
@@ -209,101 +206,21 @@ func (g *handler) fetchFeed(
 
 	var (
 		src luigi.Source
-		snk luigi.Sink
+		snk luigi.Sink = message.NewVerifySink(fr, latestSeq, latestMsg, g.RootLog)
 	)
 
 	switch fr.Algo {
-	case ssb.RefAlgoGabby:
-		src, err = edp.Source(toLong, codec.Body{}, method, q)
-		// snk = NewLegacyDrain(fr, latestSeq, latestMsg, g.RootLog, g.hmacSec)
-
 	case ssb.RefAlgoEd25519:
 		src, err = edp.Source(toLong, json.RawMessage{}, method, q)
-		snk = NewLegacyDrain(fr, latestSeq, latestMsg, g.RootLog, g.hmacSec)
-
 	case ssb.RefAlgoProto:
-		snk = protochain.NewStreamDrain(fr, latestSeq, latestMsg, g.RootLog) //, g.hmacSec)
 		src, err = edp.Source(toLong, codec.Body{}, method, q)
-
+	case ssb.RefAlgoGabby:
+		src, err = edp.Source(toLong, codec.Body{}, method, q)
 	}
 	if err != nil {
 		return errors.Wrapf(err, "fetchFeed(%s:%d) failed to create source", fr.Ref(), latestSeq)
 	}
-
+	info.Log("starting", "fetch")
 	err = luigi.Pump(toLong, snk, src)
 	return errors.Wrap(err, "pump with legacy drain failed")
-}
-
-func NewLegacyDrain(who *ssb.FeedRef, start margaret.Seq, abs ssb.Message, rl margaret.Log, hmac HMACSecret) luigi.Sink {
-
-	return &legacyDrain{
-		who:       who,
-		latestSeq: start,
-		latestMsg: abs,
-		rootLog:   rl,
-		hmacSec:   hmac,
-	}
-}
-
-type legacyDrain struct {
-	who       *ssb.FeedRef // which feed is pulled
-	latestSeq margaret.Seq
-	latestMsg ssb.Message
-	rootLog   margaret.Log
-	hmacSec   HMACSecret
-}
-
-func (ld *legacyDrain) Pour(ctx context.Context, v interface{}) error {
-	nextMsg, err := ld.verifyAndValidate(ctx, v)
-	if err != nil {
-		return err
-	}
-
-	_, err = ld.rootLog.Append(nextMsg)
-	if err != nil {
-		return errors.Wrapf(err, "fetchFeed(%s): failed to append message(%s:%d)", ld.who.Ref(), nextMsg.Key().Ref(), nextMsg.Seq())
-	}
-
-	ld.latestSeq = nextMsg
-	ld.latestMsg = nextMsg
-	return nil
-}
-
-func (ld *legacyDrain) verifyAndValidate(ctx context.Context, v interface{}) (*legacy.StoredMessage, error) {
-	rmsg, ok := v.(json.RawMessage)
-	if !ok {
-		return nil, errors.Errorf("b4pour: expected %T - got %T", rmsg, v)
-	}
-	ref, dmsg, err := legacy.Verify(rmsg, ld.hmacSec)
-	if err != nil {
-		return nil, errors.Wrapf(err, "fetchFeed(%s:%d): message verify failed", ld.who.Ref(), ld.latestSeq)
-	}
-
-	if ld.latestSeq.Seq() > 1 {
-		if bytes.Compare(ld.latestMsg.Key().Hash, dmsg.Previous.Hash) != 0 {
-			return nil, errors.Errorf("fetchFeed(%s:%d): previous compare failed expected:%s incoming:%s",
-				ld.who.Ref(),
-				ld.latestSeq,
-				ld.latestMsg.Key().Ref(),
-				dmsg.Previous.Ref(),
-			)
-		}
-		if ld.latestMsg.Seq()+1 != dmsg.Sequence.Seq() {
-			return nil, errors.Errorf("fetchFeed(%s:%d): next.seq != curr.seq+1", ld.who.Ref(), ld.latestSeq)
-		}
-	}
-
-	return &legacy.StoredMessage{
-		Author_:    &dmsg.Author,
-		Previous_:  &dmsg.Previous,
-		Key_:       ref,
-		Sequence_:  dmsg.Sequence,
-		Timestamp_: time.Now(),
-		Raw_:       rmsg,
-	}, nil
-}
-
-func (ld legacyDrain) Close() error {
-	fmt.Println("closing legacyDrain")
-	return nil
 }

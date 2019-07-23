@@ -31,7 +31,7 @@ func newPublisherWithKP(t *testing.T, root margaret.Log, users multilog.MultiLog
 	p.key = kp
 
 	var err error
-	p.publish, err = multilogs.OpenPublishLog(root, users, *p.key)
+	p.publish, err = multilogs.OpenPublishLog(root, users, p.key)
 	p.r.NoError(err)
 	return p
 }

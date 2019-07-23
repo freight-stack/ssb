@@ -34,16 +34,17 @@ func (op PeopleOpNewPeer) Op(state *testState) error {
 	return nil
 }
 
-type PeopleOpNewPeerProto struct {
+type PeopleOpNewPeerWithAglo struct {
 	name string
+	algo string
 }
 
-func (op PeopleOpNewPeerProto) Op(state *testState) error {
+func (op PeopleOpNewPeerWithAglo) Op(state *testState) error {
 	kp, err := ssb.NewKeyPair(nil)
 	if err != nil {
 		state.t.Fatal(err)
 	}
-	kp.Id.Algo = ssb.RefAlgoProto
+	kp.Id.Algo = op.algo
 
 	publisher := newPublisherWithKP(state.t, state.store.root, state.store.userLogs, kp)
 	state.peers[op.name] = publisher
@@ -406,16 +407,24 @@ func TestPeople(t *testing.T) {
 		},
 
 		{
-			name: "feedTypes",
+			name: "feedFormats",
 			ops: []PeopleOp{
 				PeopleOpNewPeer{"alice"},
-				PeopleOpNewPeerProto{"piet"},
 				PeopleOpNewPeer{"claire"},
-				PeopleOpNewPeerProto{"pew"},
+
+				PeopleOpNewPeerWithAglo{"piet", ssb.RefAlgoProto},
+				PeopleOpNewPeerWithAglo{"pew", ssb.RefAlgoProto},
+
 				PeopleOpFollow{"alice", "piet"},
 				PeopleOpFollow{"piet", "claire"},
 				PeopleOpFollow{"piet", "pew"},
 				PeopleOpFollow{"pew", "piet"},
+
+				PeopleOpNewPeerWithAglo{"gustav", ssb.RefAlgoGabby},
+				PeopleOpNewPeerWithAglo{"gundula", ssb.RefAlgoGabby},
+
+				PeopleOpFollow{"alice", "gustav"},
+				PeopleOpFollow{"gundula", "piet"},
 			},
 			asserts: []PeopleAssertMaker{
 				PeopleAssertFollows("alice", "piet", true),
@@ -431,8 +440,14 @@ func TestPeople(t *testing.T) {
 				PeopleAssertAuthorize("piet", "pew", 0, true),
 				PeopleAssertAuthorize("pew", "piet", 0, true),
 
-				PeopleAssertHops("alice", 0, "alice", "piet"),
+				PeopleAssertHops("alice", 0, "alice", "piet", "gustav"),
 				PeopleAssertHops("piet", 0, "piet", "claire", "pew"),
+
+				PeopleAssertFollows("alice", "gustav", true),
+				PeopleAssertFollows("gundula", "piet", true),
+
+				PeopleAssertAuthorize("alice", "gustav", 0, true),
+				PeopleAssertAuthorize("gundula", "piet", 0, true),
 			},
 		},
 	}
