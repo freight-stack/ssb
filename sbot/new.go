@@ -20,8 +20,7 @@ import (
 	"go.cryptoscope.co/ssb/blobstore"
 	"go.cryptoscope.co/ssb/indexes"
 	"go.cryptoscope.co/ssb/internal/ctxutils"
-	"go.cryptoscope.co/ssb/message/gabbygrove"
-	"go.cryptoscope.co/ssb/message/protochain"
+	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/multilogs"
 	"go.cryptoscope.co/ssb/network"
 	"go.cryptoscope.co/ssb/plugins/blobs"
@@ -158,28 +157,13 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	id := s.KeyPair.Id
 	auth := s.GraphBuilder.Authorizer(id, int(s.hopCount))
 
-	switch s.KeyPair.Id.Algo {
-	case ssb.RefAlgoGabby:
-		s.PublishLog, err = gabbygrove.NewPublisher(s.RootLog, s.UserFeeds, s.KeyPair) // TODO: s.signHMACsecret
-		if err != nil {
-			return nil, errors.Wrap(err, "sbot: failed to create legacy publish log")
-		}
-	case ssb.RefAlgoProto:
-		s.PublishLog, err = protochain.NewPublisher(s.RootLog, s.UserFeeds, s.KeyPair) // TODO: s.signHMACsecret
-		if err != nil {
-			return nil, errors.Wrap(err, "sbot: failed to create legacy publish log")
-		}
-	case ssb.RefAlgoEd25519:
-		var pubopts []multilogs.PublishOption
-		if s.signHMACsecret != nil {
-			pubopts = append(pubopts, multilogs.SetHMACKey(s.signHMACsecret))
-		}
-		s.PublishLog, err = multilogs.OpenPublishLog(s.RootLog, s.UserFeeds, s.KeyPair)
-		if err != nil {
-			return nil, errors.Wrap(err, "sbot: failed to create legacy publish log")
-		}
-	default:
-		return nil, errors.Errorf("sbot: unknown feed format: %s", s.KeyPair.Id.Algo)
+	var pubopts []message.PublishOption
+	if s.signHMACsecret != nil {
+		pubopts = append(pubopts, message.SetHMACKey(s.signHMACsecret))
+	}
+	s.PublishLog, err = message.OpenPublishLog(s.RootLog, s.UserFeeds, s.KeyPair)
+	if err != nil {
+		return nil, errors.Wrap(err, "sbot: failed to create legacy publish log")
 	}
 
 	pl, _, servePrivs, err := multilogs.OpenPrivateRead(kitlog.With(log, "module", "privLogs"), r, s.KeyPair)

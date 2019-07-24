@@ -14,7 +14,7 @@ import (
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/internal/mutil"
-	"go.cryptoscope.co/ssb/message"
+	"go.cryptoscope.co/ssb/message/multimsg"
 )
 
 func TestGabbySync(t *testing.T) {
@@ -120,7 +120,7 @@ func TestGabbySync(t *testing.T) {
 		} else if err != nil {
 			r.NoError(err)
 		}
-		msg, ok := v.(message.MultiMessage)
+		msg, ok := v.(multimsg.MultiMessage)
 		r.True(ok, "Type: %T", v)
 		// t.Log(msg)
 		_, ok = msg.AsGabby()

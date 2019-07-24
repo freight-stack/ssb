@@ -15,6 +15,7 @@ import (
 	"go.cryptoscope.co/ssb/internal/mutil"
 	"go.cryptoscope.co/ssb/internal/transform"
 	"go.cryptoscope.co/ssb/message"
+	"go.cryptoscope.co/ssb/message/multimsg"
 )
 
 func (h *handler) pourFeed(ctx context.Context, req *muxrpc.Request) error {
@@ -132,7 +133,7 @@ func protoStreamSink(stream luigi.Sink) luigi.Sink {
 		if err != nil {
 			return err
 		}
-		mm, ok := v.(message.MultiMessage)
+		mm, ok := v.(multimsg.MultiMessage)
 		if !ok {
 			return errors.Errorf("binStream: expected []byte - got %T", v)
 		}
@@ -155,7 +156,7 @@ func gabbyStreamSink(stream luigi.Sink) luigi.Sink {
 		if err != nil {
 			return err
 		}
-		mm, ok := v.(message.MultiMessage)
+		mm, ok := v.(multimsg.MultiMessage)
 		if !ok {
 			return errors.Errorf("binStream: expected []byte - got %T", v)
 		}
