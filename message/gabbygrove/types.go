@@ -49,7 +49,9 @@ type Content struct {
 }
 
 type Transfer struct {
-	Event     []byte
+	Event   []byte
+	lazyEvt *Event
+
 	Signature []byte
 	Content   []byte
 }
@@ -69,6 +71,23 @@ func (tr *Transfer) UnmarshalCBOR(data []byte) error {
 	return evtDec.Decode(tr)
 }
 
+func (tr *Transfer) UnmarshaledEvent() (*Event, error) {
+	return tr.getEvent()
+}
+
+func (tr *Transfer) getEvent() (*Event, error) {
+	if tr.lazyEvt != nil {
+		return tr.lazyEvt, nil
+	}
+	var evt Event
+	err := evt.UnmarshalCBOR(tr.Event)
+	if err != nil {
+		return nil, err
+	}
+	tr.lazyEvt = &evt
+	return &evt, nil
+}
+
 // Verify returns true if the Message was signed by the author specified by the meta portion of the message
 func (tr *Transfer) Verify() bool {
 	evt, err := tr.getEvent()
@@ -82,19 +101,6 @@ func (tr *Transfer) Verify() bool {
 
 	pubKey := aref.(*ssb.FeedRef).ID
 	return ed25519.Verify(pubKey, tr.Event, tr.Signature)
-}
-
-func (tr *Transfer) UnmarshaledEvent() (*Event, error) {
-	return tr.getEvent()
-}
-
-func (tr *Transfer) getEvent() (*Event, error) {
-	var evt Event
-	err := evt.UnmarshalCBOR(tr.Event)
-	if err != nil {
-		return nil, err
-	}
-	return &evt, nil
 }
 
 var _ ssb.Message = (*Transfer)(nil)

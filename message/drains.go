@@ -1,6 +1,7 @@
 package message
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -73,7 +74,7 @@ func protoVerify(ctx context.Context, v interface{}) (ssb.Message, error) {
 		return nil, errors.Wrapf(err, "protoVerify: transfer unmarshal failed")
 	}
 	if !tr.Verify() {
-		return nil, errors.Wrapf(err, "protoVerify(%s:%d): transfer verify failed", tr.Author().Ref(), tr.Seq())
+		return nil, errors.Wrapf(err, "protoVerify: transfer verify failed")
 	}
 	return &tr, nil
 }
@@ -89,7 +90,7 @@ func gabbyVerify(ctx context.Context, v interface{}) (ssb.Message, error) {
 		return nil, errors.Wrapf(err, "gabbyVerify: transfer unmarshal failed")
 	}
 	if !tr.Verify() {
-		return nil, errors.Wrapf(err, "gabbyVerify(%s:%d): transfer verify failed", tr.Author().Ref(), tr.Seq())
+		return nil, errors.Wrapf(err, "gabbyVerify: transfer verify failed")
 	}
 	return &tr, nil
 }
@@ -110,10 +111,10 @@ type streamDrain struct {
 func (ld *streamDrain) Pour(ctx context.Context, v interface{}) error {
 	next, err := ld.verify(ctx, v)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "muxDrain(%s:%d)", ld.who.Ref(), ld.latestSeq.Seq())
 	}
 
-	err = ssb.ValidateNext(ld.latestMsg, next)
+	err = ValidateNext(ld.latestMsg, next)
 	if err != nil {
 		return err
 	}
@@ -130,5 +131,37 @@ func (ld *streamDrain) Pour(ctx context.Context, v interface{}) error {
 
 func (ld streamDrain) Close() error {
 	fmt.Println("closing protoDrain")
+	return nil
+}
+
+// ValidateNext checks the author stays the same across the feed,
+// that he previous hash is correct and that the sequence number is increasing correctly
+// TODO: move all the message's publish and drains to it's own package
+func ValidateNext(current, next ssb.Message) error {
+	if current != nil {
+		author := current.Author()
+
+		if !author.Equal(next.Author()) {
+			return errors.Errorf("ValidateNext(%s:%d): wrong author: %s", author.Ref(), current.Seq(), next.Author().Ref())
+		}
+
+		if bytes.Compare(current.Key().Hash, next.Previous().Hash) != 0 {
+			return errors.Errorf("ValidateNext(%s:%d): previous compare failed expected:%s incoming:%s",
+				author.Ref(),
+				current.Seq(),
+				current.Key().Ref(),
+				next.Previous().Ref(),
+			)
+		}
+		if current.Seq()+1 != next.Seq() {
+			return errors.Errorf("ValidateNext(%s:%d): next.seq != curr.seq+1", author.Ref(), current.Seq())
+		}
+
+	} else { // first message
+		if next.Seq() != 1 {
+			return errors.Errorf("ValidateNext(%s:%d): first message has to have sequence 1", next.Author().Ref(), next.Seq())
+		}
+	}
+
 	return nil
 }

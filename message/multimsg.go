@@ -197,6 +197,8 @@ func (mm MultiMessage) ValueContent() *ssb.Value {
 		return mm.legacy.ValueContent()
 	case Proto:
 		return mm.proto.ValueContent()
+	case Gabby:
+		return mm.gabby.ValueContent()
 	}
 	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
 }
@@ -207,6 +209,8 @@ func (mm MultiMessage) ValueContentJSON() json.RawMessage {
 		return mm.legacy.ValueContentJSON()
 	case Proto:
 		return mm.proto.ValueContentJSON()
+	case Gabby:
+		return mm.gabby.ValueContentJSON()
 	}
 	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
 }
