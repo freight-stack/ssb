@@ -1,4 +1,4 @@
-package multilogs
+package message
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"go.cryptoscope.co/margaret"
 
 	"go.cryptoscope.co/ssb"
+	"go.cryptoscope.co/ssb/multilogs"
 	"go.cryptoscope.co/ssb/repo"
 )
 
@@ -25,14 +26,14 @@ func TestSignMessages(t *testing.T) {
 	os.RemoveAll(rpath)
 
 	testRepo := repo.New(rpath)
-
 	rl, err := repo.OpenLog(testRepo)
+
 	r.NoError(err, "failed to open root log")
 	seq, err := rl.Seq().Value()
 	r.NoError(err, "failed to get log seq")
 	r.Equal(margaret.BaseSeq(-1), seq, "not empty")
 
-	userFeeds, _, userFeedsServe, err := OpenUserFeeds(testRepo)
+	userFeeds, _, userFeedsServe, err := multilogs.OpenUserFeeds(testRepo)
 	r.NoError(err, "failed to get user feeds multilog")
 
 	killServe, cancel := context.WithCancel(tctx)

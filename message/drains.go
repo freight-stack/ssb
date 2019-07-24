@@ -96,15 +96,16 @@ func gabbyVerify(ctx context.Context, v interface{}) (ssb.Message, error) {
 }
 
 type streamDrain struct {
+	// gets the input from the screen and returns the next decoded message, if it is valid
 	verify verifyFn
 
 	who *ssb.FeedRef // which feed is pulled
 
+	// holds onto the current/newest method (for sequence check and prev hash compare)
 	latestSeq margaret.BaseSeq
 	latestMsg ssb.Message
 
 	rootLog margaret.Log
-
 	// hmacSec   HMACSecret
 }
 

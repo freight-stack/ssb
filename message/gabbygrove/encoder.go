@@ -32,17 +32,17 @@ func GetCBORHandle() (h *codec.CborHandle) {
 	return h
 }
 
-func NewEncoder(author *ssb.KeyPair) *cborEnc {
-	pe := &cborEnc{}
+func NewEncoder(author *ssb.KeyPair) *Encoder {
+	pe := &Encoder{}
 	pe.kp = author
 	return pe
 }
 
-type cborEnc struct {
+type Encoder struct {
 	kp *ssb.KeyPair
 }
 
-func (e *cborEnc) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Transfer, *ssb.MessageRef, error) {
+func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Transfer, *ssb.MessageRef, error) {
 	contentHash := sha256.New()
 	contentBuf := &bytes.Buffer{}
 	w := io.MultiWriter(contentHash, contentBuf)

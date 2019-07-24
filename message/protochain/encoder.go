@@ -17,17 +17,17 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
-func NewEncoder(author *ssb.KeyPair) *protoEnc {
-	pe := &protoEnc{}
+func NewEncoder(author *ssb.KeyPair) *Encoder {
+	pe := &Encoder{}
 	pe.kp = author
 	return pe
 }
 
-type protoEnc struct {
+type Encoder struct {
 	kp *ssb.KeyPair
 }
 
-func (e *protoEnc) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Transfer, *ssb.MessageRef, error) {
+func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Transfer, *ssb.MessageRef, error) {
 	contentHash := sha256.New()
 	buf := &bytes.Buffer{}
 	w := io.MultiWriter(contentHash, buf)

@@ -16,6 +16,7 @@ import (
 
 	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/internal/ctxutils"
+	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/repo"
 )
 
@@ -45,17 +46,17 @@ func TestMessageTypes(t *testing.T) {
 
 	alice, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	alicePublish, err := OpenPublishLog(tRootLog, mt, alice)
+	alicePublish, err := message.OpenPublishLog(tRootLog, mt, alice)
 	r.NoError(err)
 
 	bob, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	bobPublish, err := OpenPublishLog(tRootLog, mt, bob)
+	bobPublish, err := message.OpenPublishLog(tRootLog, mt, bob)
 	r.NoError(err)
 
 	claire, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	clairePublish, err := OpenPublishLog(tRootLog, mt, claire)
+	clairePublish, err := message.OpenPublishLog(tRootLog, mt, claire)
 	r.NoError(err)
 
 	// > create contacts
