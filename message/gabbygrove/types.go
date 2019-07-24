@@ -92,7 +92,7 @@ func (tr *Transfer) getEvent() (*Event, error) {
 func (tr *Transfer) Verify() bool {
 	evt, err := tr.getEvent()
 	if err != nil {
-		return false
+		panic(err)
 	}
 	aref, err := evt.Author.GetRef(RefTypeFeed)
 	if err != nil {

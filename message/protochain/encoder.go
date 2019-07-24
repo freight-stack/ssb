@@ -1,3 +1,8 @@
+/* Package protochain implements an alternative feed format for ssb.
+
+This is highly experimental. See the README.md for more.
+
+*/
 package protochain
 
 import (

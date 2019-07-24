@@ -1,3 +1,7 @@
+# warning
+
+this is an experimental new feed format. some people might not even call it _ssb_.
+
 # protochain
 
 This strives to be an easier implementation of https://spec.scuttlebutt.nz/feed/datamodel.html feeds.

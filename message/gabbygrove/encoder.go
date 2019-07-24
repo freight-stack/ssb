@@ -59,6 +59,7 @@ func (e *cborEnc) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 		}
 	}
 
+	// fill the fields of the new event
 	var evt Event
 	if sequence > 1 {
 		if prev == nil {
@@ -97,7 +98,6 @@ func (e *cborEnc) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 	tr.Event = evtBytes
 	tr.Signature = ed25519.Sign(e.kp.Pair.Secret[:], evtBytes)
 	tr.Content = contentBytes
-
 	return &tr, tr.Key(), nil
 }
 

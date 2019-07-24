@@ -65,6 +65,8 @@ func TestEncoder(t *testing.T) {
 		r.NoError(err, "msg[%02d]Marshal failed", msgidx)
 		got := trBuf.Bytes()
 
+		r.True(tr.Verify(), "msg[%02d] did not verify", msgidx)
+
 		a.Len(got, len(want[msgidx]), "msg[%02d] wrong msg length", msgidx)
 		a.Equal(want[msgidx], got, "msg[%02d] compare failed", msgidx)
 
@@ -116,7 +118,7 @@ func benchmarkEncoder(i int, b *testing.B) {
 	dead := bytes.Repeat([]byte("dead"), 8)
 	kp, err := ssb.NewKeyPair(bytes.NewReader(dead))
 	r.NoError(err)
-	kp.Id.Algo = ssb.RefAlgoProto
+	kp.Id.Algo = ssb.RefAlgoGabby
 
 	e := NewEncoder(kp)
 
@@ -130,11 +132,11 @@ func benchmarkEncoder(i int, b *testing.B) {
 		"contact":    kp.Id.Ref(),
 		"spectating": true,
 	}
-
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 
 		for k := i; k > 0; k-- {
-			tr, msgRef, err := e.Encode(uint64(n+1), fakeRef, msg)
+			tr, msgRef, err := e.Encode(uint64(k+1), fakeRef, msg)
 			r.NoError(err, "msg[%02d]Encode failed")
 			r.NotNil(tr)
 			r.NotNil(msgRef)
@@ -146,3 +148,40 @@ func benchmarkEncoder(i int, b *testing.B) {
 func BenchmarkEncoder5(b *testing.B)   { benchmarkEncoder(5, b) }
 func BenchmarkEncoder500(b *testing.B) { benchmarkEncoder(500, b) }
 func BenchmarkEncoder20k(b *testing.B) { benchmarkEncoder(20000, b) }
+
+func benchmarkVerify(i int, b *testing.B) {
+	r := require.New(b)
+
+	dead := bytes.Repeat([]byte("dead"), 8)
+	kp, err := ssb.NewKeyPair(bytes.NewReader(dead))
+	r.NoError(err)
+	kp.Id.Algo = ssb.RefAlgoGabby
+
+	e := NewEncoder(kp)
+
+	fakeRef, _ := fromRef(&ssb.MessageRef{
+		Hash: bytes.Repeat([]byte("herb"), 8),
+		Algo: ssb.RefAlgoSHA256,
+	})
+
+	msg := true
+	var trs []Transfer
+	for k := i; k > 0; k-- {
+		tr, msgRef, err := e.Encode(uint64(k+1), fakeRef, msg)
+		r.NoError(err, "msg[%02d]Encode failed")
+		r.NotNil(tr)
+		r.NotNil(msgRef)
+		r.True(tr.Verify())
+		trs = append(trs, *tr)
+	}
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		for _, tr := range trs {
+			r.True(tr.Verify())
+		}
+	}
+}
+
+func BenchmarkVerify5(b *testing.B)   { benchmarkVerify(5, b) }
+func BenchmarkVerify500(b *testing.B) { benchmarkVerify(500, b) }
+func BenchmarkVerify20k(b *testing.B) { benchmarkVerify(20000, b) }

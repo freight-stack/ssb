@@ -64,9 +64,7 @@ func (ref BinaryRef) MarshalBinary() ([]byte, error) {
 	default:
 		// TODO: check if nil!?
 		return nil, nil
-
 	}
-
 }
 
 func (ref *BinaryRef) UnmarshalBinary(data []byte) error {
