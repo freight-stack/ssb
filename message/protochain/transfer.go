@@ -7,10 +7,11 @@ import (
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/ssb"
 	"golang.org/x/crypto/ed25519"
+	"golang.org/x/crypto/nacl/auth"
 )
 
 // Verify returns true if the Message was signed by the author specified by the meta portion of the message
-func (tr *Transfer) Verify() bool {
+func (tr *Transfer) Verify(hmacKey *[32]byte) bool {
 	evt, err := tr.getEvent()
 	if err != nil {
 		return false
@@ -21,7 +22,14 @@ func (tr *Transfer) Verify() bool {
 	}
 
 	pubKey := aref.(*ssb.FeedRef).ID
-	return ed25519.Verify(pubKey, tr.Event, tr.Signature)
+
+	toVerify := tr.Event
+	if hmacKey != nil {
+		mac := auth.Sum(tr.Event, hmacKey)
+		toVerify = mac[:]
+	}
+
+	return ed25519.Verify(pubKey, toVerify, tr.Signature)
 }
 
 func (tr *Transfer) UnmarshaledEvent() (*Event, error) {

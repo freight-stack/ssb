@@ -2,6 +2,7 @@ package sbot
 
 import (
 	"context"
+	"crypto/rand"
 	"os"
 	"path/filepath"
 	"sync"
@@ -26,8 +27,15 @@ func TestFeedsOneByOne(t *testing.T) {
 
 	os.RemoveAll("testrun")
 
+	appKey := make([]byte, 32)
+	rand.Read(appKey)
+	hmacKey := make([]byte, 32)
+	rand.Read(hmacKey)
+
 	aliLog, _ := logtest.KitLogger("ali", t)
 	ali, err := New(
+		WithAppKey(appKey),
+		WithHMACSigning(hmacKey),
 		WithContext(ctx),
 		WithInfo(aliLog),
 		WithRepoPath(filepath.Join("testrun", t.Name(), "ali")),
@@ -45,6 +53,8 @@ func TestFeedsOneByOne(t *testing.T) {
 
 	bobLog, _ := logtest.KitLogger("bob", t)
 	bob, err := New(
+		WithAppKey(appKey),
+		WithHMACSigning(hmacKey),
 		WithContext(ctx),
 		WithInfo(bobLog),
 		WithRepoPath(filepath.Join("testrun", t.Name(), "bob")),

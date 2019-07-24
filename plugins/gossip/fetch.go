@@ -206,7 +206,7 @@ func (g *handler) fetchFeed(
 
 	var (
 		src luigi.Source
-		snk luigi.Sink = message.NewVerifySink(fr, latestSeq, latestMsg, g.RootLog)
+		snk luigi.Sink = message.NewVerifySink(fr, latestSeq, latestMsg, g.RootLog, g.hmacSec)
 	)
 
 	switch fr.Algo {
@@ -222,5 +222,5 @@ func (g *handler) fetchFeed(
 	}
 	info.Log("starting", "fetch")
 	err = luigi.Pump(toLong, snk, src)
-	return errors.Wrap(err, "pump with legacy drain failed")
+	return errors.Wrap(err, "gossip pump failed")
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/ugorji/go/codec"
 	"go.cryptoscope.co/ssb"
 	"golang.org/x/crypto/ed25519"
+	"golang.org/x/crypto/nacl/auth"
 )
 
 // CypherLinkCBORTag is the CBOR tag for a (ssb) cypherlink
@@ -40,6 +41,18 @@ func NewEncoder(author *ssb.KeyPair) *Encoder {
 
 type Encoder struct {
 	kp *ssb.KeyPair
+
+	hmacSecret *[32]byte
+}
+
+func (e *Encoder) WithHMAC(in []byte) error {
+	var k [32]byte
+	n := copy(k[:], in)
+	if n != 32 {
+		return errors.Errorf("hmac key to short: %d", n)
+	}
+	e.hmacSecret = &k
+	return nil
 }
 
 func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Transfer, *ssb.MessageRef, error) {
@@ -94,9 +107,15 @@ func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 		return nil, nil, errors.Wrap(err, "failed to encode event")
 	}
 
+	toSign := evtBytes
+	if e.hmacSecret != nil {
+		mac := auth.Sum(evtBytes, e.hmacSecret)
+		toSign = mac[:]
+	}
+
 	var tr Transfer
 	tr.Event = evtBytes
-	tr.Signature = ed25519.Sign(e.kp.Pair.Secret[:], evtBytes)
+	tr.Signature = ed25519.Sign(e.kp.Pair.Secret[:], toSign)
 	tr.Content = contentBytes
 	return &tr, tr.Key(), nil
 }

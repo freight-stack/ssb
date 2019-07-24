@@ -21,7 +21,7 @@ type publishLog struct {
 	margaret.Log
 	rootLog margaret.Log
 
-	create Creater
+	create creater
 }
 
 func (p *publishLog) Publish(content interface{}) (*ssb.MessageRef, error) {
@@ -174,6 +174,10 @@ func SetHMACKey(hmackey []byte) PublishOption {
 		switch cv := pl.create.(type) {
 		case *legacyCreate:
 			cv.hmac = &hmacSec
+		case *protochainCreate:
+			cv.enc.WithHMAC(hmackey)
+		case *gabbyCreate:
+			cv.enc.WithHMAC(hmackey)
 		default:
 			return fmt.Errorf("hmac: unknown creater: %T", cv)
 		}
@@ -186,6 +190,10 @@ func UseNowTimestamps(yes bool) PublishOption {
 		switch cv := pl.create.(type) {
 		case *legacyCreate:
 			cv.setTimestamp = yes
+		// case *protochainCreate:
+
+		// case *gabbyCreate:
+
 		default:
 			return fmt.Errorf("setTimestamp: unknown creater: %T", cv)
 		}
@@ -193,7 +201,7 @@ func UseNowTimestamps(yes bool) PublishOption {
 	}
 }
 
-type Creater interface {
+type creater interface {
 	Create(val interface{}, prev *ssb.MessageRef, seq margaret.Seq) (ssb.Message, error)
 }
 

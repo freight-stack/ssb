@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -21,34 +20,39 @@ import (
 // TODO: start and abs could be the same parameter
 // TODO: needs configuration for hmac and what not..
 // => maybe construct those from a (global) ref register where all the suffixes live with their corresponding network configuration?
-func NewVerifySink(who *ssb.FeedRef, start margaret.Seq, abs ssb.Message, rl margaret.Log) luigi.Sink {
+func NewVerifySink(who *ssb.FeedRef, start margaret.Seq, abs ssb.Message, rl margaret.Log, hmacKey *[32]byte) luigi.Sink {
 
 	sd := &streamDrain{
 		who:       who,
 		latestSeq: margaret.BaseSeq(start.Seq()),
 		latestMsg: abs,
 		rootLog:   rl,
-		// hmacSec:   hmac,
 	}
 	switch who.Algo {
 	case ssb.RefAlgoEd25519:
-		sd.verify = legacyVerify
+		sd.verify = legacyVerify{hmacKey: hmacKey}
 	case ssb.RefAlgoProto:
-		sd.verify = protoVerify
+		sd.verify = protoVerify{hmacKey: hmacKey}
 	case ssb.RefAlgoGabby:
-		sd.verify = gabbyVerify
+		sd.verify = gabbyVerify{hmacKey: hmacKey}
 	}
 	return sd
 }
 
-type verifyFn func(ctx context.Context, v interface{}) (ssb.Message, error)
+type verifier interface {
+	Verify(ctx context.Context, v interface{}) (ssb.Message, error)
+}
 
-func legacyVerify(ctx context.Context, v interface{}) (ssb.Message, error) {
+type legacyVerify struct {
+	hmacKey *[32]byte
+}
+
+func (lv legacyVerify) Verify(ctx context.Context, v interface{}) (ssb.Message, error) {
 	rmsg, ok := v.(json.RawMessage)
 	if !ok {
 		return nil, errors.Errorf("legacyVerify: expected %T - got %T", rmsg, v)
 	}
-	ref, dmsg, err := legacy.Verify(rmsg, nil) // TODO: ld.hmacSec)
+	ref, dmsg, err := legacy.Verify(rmsg, lv.hmacKey)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +67,11 @@ func legacyVerify(ctx context.Context, v interface{}) (ssb.Message, error) {
 	}, nil
 }
 
-func protoVerify(ctx context.Context, v interface{}) (ssb.Message, error) {
+type protoVerify struct {
+	hmacKey *[32]byte
+}
+
+func (pv protoVerify) Verify(ctx context.Context, v interface{}) (ssb.Message, error) {
 	trBytes, ok := v.([]uint8)
 	if !ok {
 		return nil, errors.Errorf("protoVerify: expected %T - got %T", trBytes, v)
@@ -73,13 +81,17 @@ func protoVerify(ctx context.Context, v interface{}) (ssb.Message, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "protoVerify: transfer unmarshal failed")
 	}
-	if !tr.Verify() {
-		return nil, errors.Wrapf(err, "protoVerify: transfer verify failed")
+	if !tr.Verify(pv.hmacKey) {
+		return nil, errors.Errorf("protoVerify: transfer verify failed")
 	}
 	return &tr, nil
 }
 
-func gabbyVerify(ctx context.Context, v interface{}) (ssb.Message, error) {
+type gabbyVerify struct {
+	hmacKey *[32]byte
+}
+
+func (gv gabbyVerify) Verify(ctx context.Context, v interface{}) (ssb.Message, error) {
 	trBytes, ok := v.([]uint8)
 	if !ok {
 		return nil, errors.Errorf("gabbyVerify: expected %T - got %T", trBytes, v)
@@ -89,15 +101,15 @@ func gabbyVerify(ctx context.Context, v interface{}) (ssb.Message, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "gabbyVerify: transfer unmarshal failed")
 	}
-	if !tr.Verify() {
-		return nil, errors.Wrapf(err, "gabbyVerify: transfer verify failed")
+	if !tr.Verify(gv.hmacKey) {
+		return nil, errors.Errorf("gabbyVerify: transfer verify failed")
 	}
 	return &tr, nil
 }
 
 type streamDrain struct {
 	// gets the input from the screen and returns the next decoded message, if it is valid
-	verify verifyFn
+	verify verifier
 
 	who *ssb.FeedRef // which feed is pulled
 
@@ -106,11 +118,10 @@ type streamDrain struct {
 	latestMsg ssb.Message
 
 	rootLog margaret.Log
-	// hmacSec   HMACSecret
 }
 
 func (ld *streamDrain) Pour(ctx context.Context, v interface{}) error {
-	next, err := ld.verify(ctx, v)
+	next, err := ld.verify.Verify(ctx, v)
 	if err != nil {
 		return errors.Wrapf(err, "muxDrain(%s:%d)", ld.who.Ref(), ld.latestSeq.Seq())
 	}
@@ -131,7 +142,7 @@ func (ld *streamDrain) Pour(ctx context.Context, v interface{}) error {
 }
 
 func (ld streamDrain) Close() error {
-	fmt.Println("closing protoDrain")
+	// fmt.Println("closing protoDrain")
 	return nil
 }
 

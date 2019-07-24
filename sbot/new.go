@@ -161,7 +161,7 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	if s.signHMACsecret != nil {
 		pubopts = append(pubopts, message.SetHMACKey(s.signHMACsecret))
 	}
-	s.PublishLog, err = message.OpenPublishLog(s.RootLog, s.UserFeeds, s.KeyPair)
+	s.PublishLog, err = message.OpenPublishLog(s.RootLog, s.UserFeeds, s.KeyPair, pubopts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "sbot: failed to create legacy publish log")
 	}

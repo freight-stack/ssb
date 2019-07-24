@@ -2,6 +2,7 @@ package sbot
 
 import (
 	"context"
+	"crypto/rand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -24,8 +25,15 @@ func TestGabbySync(t *testing.T) {
 
 	os.RemoveAll("testrun")
 
+	appKey := make([]byte, 32)
+	rand.Read(appKey)
+	hmacKey := make([]byte, 32)
+	rand.Read(hmacKey)
+
 	aliLog, _ := logtest.KitLogger("ali", t)
 	ali, err := New(
+		WithAppKey(appKey),
+		WithHMACSigning(hmacKey),
 		WithInfo(aliLog),
 		WithRepoPath(filepath.Join("testrun", t.Name(), "ali")),
 		WithListenAddr(":0"))
@@ -47,6 +55,8 @@ func TestGabbySync(t *testing.T) {
 
 	bobLog, _ := logtest.KitLogger("bob", t)
 	bob, err := New(
+		WithAppKey(appKey),
+		WithHMACSigning(hmacKey),
 		WithKeyPair(bobsKey),
 		WithInfo(bobLog),
 		WithRepoPath(filepath.Join("testrun", t.Name(), "bob")),

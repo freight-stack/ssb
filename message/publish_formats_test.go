@@ -7,15 +7,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"go.cryptoscope.co/ssb/message/legacy"
-
-	"go.cryptoscope.co/ssb/message/multimsg"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.cryptoscope.co/margaret"
 
 	"go.cryptoscope.co/ssb"
+	"go.cryptoscope.co/ssb/message/legacy"
+	"go.cryptoscope.co/ssb/message/multimsg"
 	"go.cryptoscope.co/ssb/multilogs"
 	"go.cryptoscope.co/ssb/repo"
 )
