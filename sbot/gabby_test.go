@@ -51,7 +51,7 @@ func TestGabbySync(t *testing.T) {
 	// bob is the protochain one
 	bobsKey, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	bobsKey.Id.Algo = ssb.RefAlgoGabby
+	bobsKey.Id.Algo = ssb.RefAlgoFeedGabby
 
 	bobLog, _ := logtest.KitLogger("bob", t)
 	bob, err := New(

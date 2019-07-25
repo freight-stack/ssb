@@ -210,11 +210,11 @@ func (g *handler) fetchFeed(
 	)
 
 	switch fr.Algo {
-	case ssb.RefAlgoEd25519:
+	case ssb.RefAlgoFeedSSB1:
 		src, err = edp.Source(toLong, json.RawMessage{}, method, q)
-	case ssb.RefAlgoProto:
+	case ssb.RefAlgoFeedProto:
 		src, err = edp.Source(toLong, codec.Body{}, method, q)
-	case ssb.RefAlgoGabby:
+	case ssb.RefAlgoFeedGabby:
 		src, err = edp.Source(toLong, codec.Body{}, method, q)
 	}
 	if err != nil {

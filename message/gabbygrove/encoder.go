@@ -88,9 +88,9 @@ func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 		return nil, nil, errors.Wrap(err, "invalid author ref")
 	}
 
-	evt.Content.Hash, err = fromRef(&ssb.BlobRef{
+	evt.Content.Hash, err = fromRef(&ssb.ContentRef{
 		Hash: contentHash.Sum(nil),
-		Algo: ssb.RefAlgoGabby,
+		Algo: ssb.RefAlgoContentGabby,
 	})
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to construct content reference")
@@ -127,6 +127,6 @@ func (tr Transfer) Key() *ssb.MessageRef {
 
 	return &ssb.MessageRef{
 		Hash: signedEvtHash.Sum(nil),
-		Algo: ssb.RefAlgoGabby,
+		Algo: ssb.RefAlgoMessageGabby,
 	}
 }

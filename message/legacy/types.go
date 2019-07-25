@@ -78,7 +78,7 @@ func (msg LegacyMessage) Sign(priv ed25519.PrivateKey, hmacSecret *[32]byte) (*s
 
 	mr := &ssb.MessageRef{
 		Hash: h.Sum(nil),
-		Algo: ssb.RefAlgoSHA256,
+		Algo: ssb.RefAlgoMessageSSB1,
 	}
 	return mr, ppWithSig, nil
 }

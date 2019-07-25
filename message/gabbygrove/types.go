@@ -24,15 +24,14 @@ func (evt Event) MarshalCBOR() ([]byte, error) {
 	var evtBuf bytes.Buffer
 	enc := codec.NewEncoder(&evtBuf, GetCBORHandle())
 	if err := enc.Encode(evt); err != nil {
-		return nil, errors.Wrap(err, "failed to encode metadata")
+		return nil, errors.Wrap(err, "gabbyGrove/Event: failed to encode to cbor")
 	}
-	done := evtBuf.Bytes()
-	return done, nil
+	return evtBuf.Bytes(), nil
 }
 
 func (evt *Event) UnmarshalCBOR(data []byte) error {
 	evtDec := codec.NewDecoder(bytes.NewReader(data), GetCBORHandle())
-	return evtDec.Decode(evt)
+	return errors.Wrapf(evtDec.Decode(evt), "gabbyGrove/Event: failed to decode")
 }
 
 type ContentType uint
@@ -63,8 +62,7 @@ func (tr Transfer) MarshalCBOR() ([]byte, error) {
 	if err := enc.Encode(tr); err != nil {
 		return nil, errors.Wrap(err, "failed to encode metadata")
 	}
-	done := evtBuf.Bytes()
-	return done, nil
+	return evtBuf.Bytes(), nil
 }
 
 func (tr *Transfer) UnmarshalCBOR(data []byte) error {

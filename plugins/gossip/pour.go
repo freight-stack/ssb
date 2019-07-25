@@ -88,14 +88,15 @@ func (h *handler) pourFeed(ctx context.Context, req *muxrpc.Request) error {
 	// sent := 0 TODO wrap snk and count there
 
 	switch feedRef.Algo {
-	case ssb.RefAlgoEd25519:
+	case ssb.RefAlgoFeedSSB1:
 		src = transform.NewKeyValueWrapper(src, qry.Keys)
 		snk = legacyStreamSink(req.Stream)
-
-	case ssb.RefAlgoProto:
+	case ssb.RefAlgoFeedProto:
 		snk = protoStreamSink(req.Stream)
-	case ssb.RefAlgoGabby:
+	case ssb.RefAlgoFeedGabby:
 		snk = gabbyStreamSink(req.Stream)
+	default:
+		return errors.Errorf("unsupported feed format.")
 	}
 
 	err = luigi.Pump(ctx, snk, src)

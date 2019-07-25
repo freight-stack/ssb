@@ -3,7 +3,6 @@ package ssb
 import (
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
 
@@ -16,6 +15,7 @@ const (
 	StorageRefMessage
 	StorageRefBlob
 	StorageRefContent
+	StorageRefFeedProto
 	StorageRefFeedGabby
 )
 
@@ -38,10 +38,12 @@ func (ref StorageRef) valid() (StorageRefType, error) {
 	if ref.fr != nil {
 		i++
 		switch ref.fr.Algo {
-		case RefAlgoProto:
-			t = StorageRefFeedGabby
-		case RefAlgoEd25519:
+		case RefAlgoFeedSSB1:
 			t = StorageRefFeedLegacy
+		case RefAlgoFeedProto:
+			t = StorageRefFeedProto
+		case RefAlgoFeedGabby:
+			t = StorageRefFeedGabby
 		default:
 			return StorageRefUndefined, ErrInvalidRef
 		}
@@ -91,6 +93,8 @@ func (ref *StorageRef) MarshalTo(data []byte) (n int, err error) {
 		copy(data, append([]byte{0x02}, ref.mr.Hash...))
 	case StorageRefBlob:
 		copy(data, append([]byte{0x03}, ref.br.Hash...))
+	case StorageRefFeedProto:
+		copy(data, append([]byte{0x04}, ref.fr.ID...))
 	case StorageRefFeedGabby:
 		copy(data, append([]byte{0x05}, ref.fr.ID...))
 	default:
@@ -107,17 +111,29 @@ func (ref *StorageRef) Unmarshal(data []byte) error {
 	case 0x01:
 		ref.fr = &FeedRef{
 			ID:   data[1:],
-			Algo: RefAlgoEd25519,
+			Algo: RefAlgoFeedSSB1,
 		}
 	case 0x02:
 		ref.mr = &MessageRef{
 			Hash: data[1:],
-			Algo: RefAlgoSHA256,
+			Algo: RefAlgoMessageSSB1,
 		}
 	case 0x03:
 		ref.br = &BlobRef{
 			Hash: data[1:],
-			Algo: RefAlgoSHA256,
+			Algo: RefAlgoBlobSSB1,
+		}
+
+	case 0x04:
+		ref.fr = &FeedRef{
+			ID:   data[1:],
+			Algo: RefAlgoFeedProto,
+		}
+
+	case 0x05:
+		ref.fr = &FeedRef{
+			ID:   data[1:],
+			Algo: RefAlgoFeedGabby,
 		}
 	default:
 		return errors.Wrapf(ErrInvalidRefType, "invalid binref type: %x", data[0])
@@ -147,7 +163,7 @@ func bytestr(r Ref) []byte {
 }
 
 func (ref *StorageRef) UnmarshalJSON(data []byte) error {
-	spew.Dump(ref)
+	// spew.Dump(ref)
 	return errors.Errorf("TODO:json")
 }
 

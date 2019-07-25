@@ -42,7 +42,7 @@ func (s Signature) Raw() ([]byte, error) {
 func (s Signature) Verify(content []byte, r *ssb.FeedRef) error {
 	switch s.Algo() {
 	case SigAlgoEd25519:
-		if r.Algo != ssb.RefAlgoEd25519 {
+		if r.Algo != ssb.RefAlgoFeedSSB1 {
 			return errors.Errorf("sbot: invalid signature algorithm")
 		}
 		b, err := s.Raw()

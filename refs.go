@@ -18,11 +18,18 @@ import (
 )
 
 const (
-	RefAlgoSHA256  = "sha256"  // scuttlebutt happend anyway
-	RefAlgoEd25519 = "ed25519" // ssb v1 (legacy encoding)
+	RefAlgoFeedSSB1  = "ed25519"   // ssb v1 (legacy, crappy encoding)
+	RefAlgoFeedProto = "pcf-v1"    // protochain feed
+	RefAlgoFeedGabby = "ggfeed-v1" // cbor based chain
 
-	RefAlgoProto = "proto-v1" // new protochain
-	RefAlgoGabby = "gabby"    // new protochain
+	RefAlgoMessageSSB1  = "sha256"   //  ssb v1, scuttlebutt happend anyway
+	RefAlgoMessageProto = "pcmsg-v1" // new protochain
+	RefAlgoMessageGabby = "ggmsg-v1"
+
+	RefAlgoBlobSSB1 = RefAlgoMessageSSB1
+
+	RefAlgoContentProto = "proto-v1-content"
+	RefAlgoContentGabby = "gabby-v1-content"
 )
 
 // Common errors for invalid references
@@ -44,11 +51,11 @@ func (e ErrRefLen) Error() string {
 }
 
 func NewFeedRefLenError(n int) error {
-	return ErrRefLen{algo: RefAlgoEd25519, n: n}
+	return ErrRefLen{algo: RefAlgoFeedSSB1, n: n}
 }
 
 func NewHashLenError(n int) error {
-	return ErrRefLen{algo: RefAlgoSHA256, n: n}
+	return ErrRefLen{algo: RefAlgoMessageSSB1, n: n}
 }
 
 func ParseRef(str string) (Ref, error) {
@@ -73,12 +80,12 @@ func ParseRef(str string) (Ref, error) {
 	case "@":
 		var algo string
 		switch split[1] {
-		case RefAlgoEd25519:
-			algo = RefAlgoEd25519
-		case RefAlgoProto:
-			algo = RefAlgoProto
-		case RefAlgoGabby:
-			algo = RefAlgoGabby
+		case RefAlgoFeedSSB1:
+			algo = RefAlgoFeedSSB1
+		case RefAlgoFeedProto:
+			algo = RefAlgoFeedProto
+		case RefAlgoFeedGabby:
+			algo = RefAlgoFeedGabby
 		default:
 			return nil, ErrInvalidRefAlgo
 		}
@@ -92,12 +99,12 @@ func ParseRef(str string) (Ref, error) {
 	case "%":
 		var algo string
 		switch split[1] {
-		case RefAlgoSHA256:
-			algo = RefAlgoSHA256
-		case RefAlgoProto:
-			algo = RefAlgoProto
-		case RefAlgoGabby:
-			algo = RefAlgoGabby
+		case RefAlgoMessageSSB1:
+			algo = RefAlgoMessageSSB1
+		case RefAlgoMessageProto:
+			algo = RefAlgoMessageProto
+		case RefAlgoMessageGabby:
+			algo = RefAlgoMessageGabby
 		default:
 			return nil, ErrInvalidRefAlgo
 		}
@@ -109,7 +116,7 @@ func ParseRef(str string) (Ref, error) {
 			Algo: algo,
 		}, nil
 	case "&":
-		if split[1] != RefAlgoSHA256 {
+		if split[1] != RefAlgoBlobSSB1 {
 			return nil, ErrInvalidRefAlgo
 		}
 		if n := len(raw); n != 32 {
@@ -117,7 +124,7 @@ func ParseRef(str string) (Ref, error) {
 		}
 		return &BlobRef{
 			Hash: raw,
-			Algo: RefAlgoSHA256,
+			Algo: RefAlgoBlobSSB1,
 		}, nil
 	}
 
@@ -170,7 +177,7 @@ func (r *MessageRef) Scan(raw interface{}) error {
 			return errors.Errorf("msgRef/Scan: wrong length: %d", len(v))
 		}
 		r.Hash = v
-		r.Algo = RefAlgoSHA256
+		r.Algo = RefAlgoMessageSSB1
 	case string:
 		mr, err := ParseMessageRef(v)
 		if err != nil {
@@ -203,7 +210,7 @@ type FeedRef struct {
 
 func NewFeedRefEd25519(b []byte) (*FeedRef, error) {
 	var r FeedRef
-	r.Algo = RefAlgoEd25519
+	r.Algo = RefAlgoFeedSSB1
 	if len(b) != 32 {
 		return nil, ErrInvalidRef
 	}
@@ -342,5 +349,48 @@ func (br *BlobRef) UnmarshalText(text []byte) error {
 		return errors.Wrap(err, " BlobRef/UnmarshalText failed")
 	}
 	*br = *newBR
+	return nil
+}
+
+// ContentRef defines the hashed content of a message
+type ContentRef struct {
+	Hash []byte
+	Algo string
+}
+
+func (ref ContentRef) Ref() string {
+	return fmt.Sprintf("!%s.%s", base64.StdEncoding.EncodeToString(ref.Hash), ref.Algo)
+}
+
+func (ref ContentRef) MarshalBinary() ([]byte, error) {
+	switch ref.Algo {
+	case RefAlgoContentProto:
+		return append([]byte{0x01}, ref.Hash...), nil
+	case RefAlgoContentGabby:
+		return append([]byte{0x02}, ref.Hash...), nil
+	default:
+		return nil, fmt.Errorf("contentRef/Marshal: invalid binref type: %s", ref.Algo)
+	}
+}
+
+func (ref *ContentRef) UnmarshalBinary(data []byte) error {
+	if n := len(data); n != binrefSize {
+		return errors.Errorf("contentRef: invalid len:%d", n)
+	}
+	var newRef ContentRef
+	newRef.Hash = make([]byte, 32)
+	switch data[0] {
+	case 0x01:
+		newRef.Algo = RefAlgoContentProto
+	case 0x02:
+		newRef.Algo = RefAlgoContentGabby
+	default:
+		return fmt.Errorf("unmarshal: invalid contentRef type: %x", data[0])
+	}
+	n := copy(newRef.Hash, data[1:])
+	if n != 32 {
+		return fmt.Errorf("unmarshal: invalid contentRef size: %d", n)
+	}
+	*ref = newRef
 	return nil
 }

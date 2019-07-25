@@ -8,7 +8,7 @@ import (
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/margaret/multilog"
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/multilogs"
+	"go.cryptoscope.co/ssb/message"
 )
 
 type publisher struct {
@@ -31,7 +31,7 @@ func newPublisherWithKP(t *testing.T, root margaret.Log, users multilog.MultiLog
 	p.key = kp
 
 	var err error
-	p.publish, err = multilogs.OpenPublishLog(root, users, p.key)
+	p.publish, err = message.OpenPublishLog(root, users, p.key)
 	p.r.NoError(err)
 	return p
 }

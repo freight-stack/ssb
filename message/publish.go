@@ -138,15 +138,15 @@ func OpenPublishLog(rootLog margaret.Log, sublogs multilog.MultiLog, kp *ssb.Key
 	}
 
 	switch kp.Id.Algo {
-	case ssb.RefAlgoEd25519:
+	case ssb.RefAlgoFeedSSB1:
 		pl.create = &legacyCreate{
 			key: *kp,
 		}
-	case ssb.RefAlgoProto:
+	case ssb.RefAlgoFeedProto:
 		pl.create = &protochainCreate{
 			enc: protochain.NewEncoder(kp),
 		}
-	case ssb.RefAlgoGabby:
+	case ssb.RefAlgoFeedGabby:
 		pl.create = &gabbyCreate{
 			enc: gabbygrove.NewEncoder(kp),
 		}

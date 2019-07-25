@@ -29,11 +29,11 @@ func NewVerifySink(who *ssb.FeedRef, start margaret.Seq, abs ssb.Message, rl mar
 		rootLog:   rl,
 	}
 	switch who.Algo {
-	case ssb.RefAlgoEd25519:
+	case ssb.RefAlgoFeedSSB1:
 		sd.verify = legacyVerify{hmacKey: hmacKey}
-	case ssb.RefAlgoProto:
+	case ssb.RefAlgoFeedProto:
 		sd.verify = protoVerify{hmacKey: hmacKey}
-	case ssb.RefAlgoGabby:
+	case ssb.RefAlgoFeedGabby:
 		sd.verify = gabbyVerify{hmacKey: hmacKey}
 	}
 	return sd

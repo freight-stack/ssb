@@ -21,7 +21,7 @@ const (
 type BinaryRef struct {
 	fr *ssb.FeedRef
 	mr *ssb.MessageRef
-	cr *ssb.BlobRef // payload/content ref
+	cr *ssb.ContentRef // payload/content ref
 }
 
 // currently all references are 32bytes long
@@ -60,7 +60,11 @@ func (ref BinaryRef) MarshalBinary() ([]byte, error) {
 	case RefTypeMessage:
 		return append([]byte{0x02}, ref.mr.Hash...), nil
 	case RefTypeContent:
-		return append([]byte{0x03}, ref.cr.Hash...), nil
+		if ref.cr.Algo != ssb.RefAlgoContentGabby {
+			return nil, errors.Errorf("invalid binary content ref for feed: %s", ref.cr.Algo)
+		}
+		crBytes, err := ref.cr.MarshalBinary()
+		return append([]byte{0x03}, crBytes[1:]...), err
 	default:
 		// TODO: check if nil!?
 		return nil, nil
@@ -75,18 +79,22 @@ func (ref *BinaryRef) UnmarshalBinary(data []byte) error {
 	case 0x01:
 		ref.fr = &ssb.FeedRef{
 			ID:   data[1:],
-			Algo: ssb.RefAlgoGabby,
+			Algo: ssb.RefAlgoFeedGabby,
 		}
 	case 0x02:
 		ref.mr = &ssb.MessageRef{
 			Hash: data[1:],
-			Algo: ssb.RefAlgoGabby,
+			Algo: ssb.RefAlgoMessageGabby,
 		}
 	case 0x03:
-		ref.cr = &ssb.BlobRef{
-			Hash: data[1:],
-			Algo: "ofcmsg",
+		var newCR ssb.ContentRef
+		if err := newCR.UnmarshalBinary(append([]byte{0x02}, data[1:]...)); err != nil {
+			return err
 		}
+		if newCR.Algo != ssb.RefAlgoContentGabby {
+			return errors.Errorf("unmarshal: invalid binary content ref for feed: %q", newCR.Algo)
+		}
+		ref.cr = &newCR
 	default:
 		return fmt.Errorf("unmarshal: invalid binref type: %x", data[0])
 	}
@@ -154,7 +162,7 @@ func fromRef(r ssb.Ref) (*BinaryRef, error) {
 		br.fr = tr
 	case *ssb.MessageRef:
 		br.mr = tr
-	case *ssb.BlobRef: // content/payload ref
+	case *ssb.ContentRef:
 		br.cr = tr
 	default:
 		return nil, fmt.Errorf("fromRef: invalid ref type: %T", r)

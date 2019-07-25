@@ -56,9 +56,9 @@ func TestMultiMsgProto(t *testing.T) {
 	authorRef, err := protochain.NewBinaryRef(kp.Id)
 	r.NoError(err)
 
-	cref := &ssb.BlobRef{
+	cref := &ssb.ContentRef{
 		Hash: kpSeed,
-		Algo: "ofc.sha256",
+		Algo: ssb.RefAlgoContentProto,
 	}
 	payloadRef, err := protochain.NewBinaryRef(cref)
 	r.NoError(err)
@@ -115,9 +115,9 @@ func TestMultiMsgGabby(t *testing.T) {
 	authorRef, err := gabbygrove.NewBinaryRef(kp.Id)
 	r.NoError(err)
 
-	cref := &ssb.BlobRef{
+	cref := &ssb.ContentRef{
 		Hash: kpSeed,
-		Algo: "ofc.sha256",
+		Algo: ssb.RefAlgoContentGabby,
 	}
 	payloadRef, err := gabbygrove.NewBinaryRef(cref)
 	r.NoError(err)

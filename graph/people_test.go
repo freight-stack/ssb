@@ -412,16 +412,16 @@ func TestPeople(t *testing.T) {
 				PeopleOpNewPeer{"alice"},
 				PeopleOpNewPeer{"claire"},
 
-				PeopleOpNewPeerWithAglo{"piet", ssb.RefAlgoProto},
-				PeopleOpNewPeerWithAglo{"pew", ssb.RefAlgoProto},
+				PeopleOpNewPeerWithAglo{"piet", ssb.RefAlgoFeedProto},
+				PeopleOpNewPeerWithAglo{"pew", ssb.RefAlgoFeedProto},
 
 				PeopleOpFollow{"alice", "piet"},
 				PeopleOpFollow{"piet", "claire"},
 				PeopleOpFollow{"piet", "pew"},
 				PeopleOpFollow{"pew", "piet"},
 
-				PeopleOpNewPeerWithAglo{"gustav", ssb.RefAlgoGabby},
-				PeopleOpNewPeerWithAglo{"gundula", ssb.RefAlgoGabby},
+				PeopleOpNewPeerWithAglo{"gustav", ssb.RefAlgoFeedGabby},
+				PeopleOpNewPeerWithAglo{"gundula", ssb.RefAlgoFeedGabby},
 
 				PeopleOpFollow{"alice", "gustav"},
 				PeopleOpFollow{"gundula", "piet"},

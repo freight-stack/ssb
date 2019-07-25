@@ -54,7 +54,7 @@ func TestProtoChainSync(t *testing.T) {
 	// bob is the protochain one
 	bobsKey, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	bobsKey.Id.Algo = ssb.RefAlgoProto
+	bobsKey.Id.Algo = ssb.RefAlgoFeedProto
 
 	bobLog, _ := logtest.KitLogger("bob", t)
 	bob, err := New(
@@ -176,7 +176,7 @@ func TestProtoChainPrivate(t *testing.T) {
 	// bob is the otc one
 	bobsKey, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	bobsKey.Id.Algo = ssb.RefAlgoProto
+	bobsKey.Id.Algo = ssb.RefAlgoFeedProto
 
 	bobLog, _ := logtest.KitLogger("bob", t)
 	bob, err := New(

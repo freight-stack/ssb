@@ -41,9 +41,9 @@ func TestFormatsSimple(t *testing.T) {
 		// pubfn func(margaret.Log, multilog.MultiLog, *ssb.KeyPair) (ssb.Publisher, error)
 	}
 	var testCases = []testCase{
-		{ssb.RefAlgoProto},   //
-		{ssb.RefAlgoEd25519}, // crappy
-		{ssb.RefAlgoGabby},   //
+		{ssb.RefAlgoFeedSSB1},  // crappy
+		{ssb.RefAlgoFeedProto}, //
+		{ssb.RefAlgoFeedGabby}, //
 	}
 
 	staticRand := rand.New(rand.NewSource(42))
@@ -128,22 +128,22 @@ func TestFormatsSimple(t *testing.T) {
 				mm, ok := storedV.(multimsg.MultiMessage)
 				r.True(ok)
 				switch tc.ff {
-				case ssb.RefAlgoEd25519:
+				case ssb.RefAlgoFeedSSB1:
 					msg, ok := mm.AsLegacy()
 					r.True(ok)
 
 					_, _, err = legacy.Verify(msg.Raw_, nil)
 					r.NoError(err)
 
-				case ssb.RefAlgoProto:
+				case ssb.RefAlgoFeedProto:
 					msg, ok := mm.AsProto()
 					r.True(ok)
-					a.True(msg.Verify(), "proto failed to validate msg:%d", i)
+					a.True(msg.Verify(nil), "proto failed to validate msg:%d", i)
 
-				case ssb.RefAlgoGabby:
+				case ssb.RefAlgoFeedGabby:
 					g, ok := mm.AsGabby()
 					r.True(ok)
-					a.True(g.Verify(), "gabby failed to validate msg:%d", i)
+					a.True(g.Verify(nil), "gabby failed to validate msg:%d", i)
 
 				default:
 					r.FailNow("unhandled feed format", "format:%s", tc.ff)

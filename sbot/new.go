@@ -212,13 +212,13 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		}
 
 		// shit - don't see a way to pass being a different feedtype with shs1
-		remote.Algo = ssb.RefAlgoProto
+		remote.Algo = ssb.RefAlgoFeedProto
 		err = auth.Authorize(remote)
 		if err == nil {
 			return pmgr.MakeHandler(conn)
 		}
 
-		remote.Algo = ssb.RefAlgoGabby
+		remote.Algo = ssb.RefAlgoFeedGabby
 		err = auth.Authorize(remote)
 		if err == nil {
 			return pmgr.MakeHandler(conn)

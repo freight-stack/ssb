@@ -12,7 +12,7 @@ import (
 type BinaryRef struct {
 	fr *ssb.FeedRef
 	mr *ssb.MessageRef
-	cr *ssb.BlobRef // payload/content ref
+	cr *ssb.ContentRef // payload/content ref
 }
 
 // currently all references are 32bytes long
@@ -72,17 +72,17 @@ func (ref *BinaryRef) Unmarshal(data []byte) error {
 	case 0x01:
 		ref.fr = &ssb.FeedRef{
 			ID:   data[1:],
-			Algo: ssb.RefAlgoProto,
+			Algo: ssb.RefAlgoFeedProto,
 		}
 	case 0x02:
 		ref.mr = &ssb.MessageRef{
 			Hash: data[1:],
-			Algo: ssb.RefAlgoSHA256,
+			Algo: ssb.RefAlgoMessageProto,
 		}
 	case 0x03:
-		ref.cr = &ssb.BlobRef{
+		ref.cr = &ssb.ContentRef{
 			Hash: data[1:],
-			Algo: "ofcmsg",
+			Algo: ssb.RefAlgoContentProto,
 		}
 	default:
 		return fmt.Errorf("invalid binref type: %x", data[0])
@@ -151,7 +151,7 @@ func fromRef(r ssb.Ref) (*BinaryRef, error) {
 		br.fr = tr
 	case *ssb.MessageRef:
 		br.mr = tr
-	case *ssb.BlobRef: // content/payload ref
+	case *ssb.ContentRef: // content/payload ref
 		br.cr = tr
 	default:
 		return nil, fmt.Errorf("invalid ref type: %T", r)
