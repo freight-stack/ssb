@@ -13,7 +13,7 @@ import (
 
 type KeyValue struct {
 	Message ssb.Message
-	Data    []byte
+	Data    json.RawMessage
 }
 
 func NewKeyValueWrapper(src luigi.Source, wrap bool) luigi.Source {
@@ -36,7 +36,6 @@ func NewKeyValueWrapper(src luigi.Source, wrap bool) luigi.Source {
 		if sm, ok := v.(legacy.StoredMessage); ok {
 			kv.Timestamp = sm.Timestamp_.UnixNano() / 1000000
 		}
-		// kv.Timestamp = storedMsg.Timestamp.UnixNano() / 1000000
 		kvMsg, err := json.Marshal(kv)
 		if err != nil {
 			return nil, errors.Wrapf(err, "kvwrap: failed to k:v map message")

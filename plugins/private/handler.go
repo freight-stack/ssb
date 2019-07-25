@@ -149,7 +149,7 @@ func (h handler) HandleCall(ctx context.Context, req *muxrpc.Request, edp muxrpc
 			}
 			msg, ok := v.([]byte)
 			if !ok {
-				return errors.Errorf("b4pour: expected []byte - got %T", v)
+				return errors.Errorf("private pour: expected %T - got %T", msg, v)
 			}
 			return req.Stream.Pour(ctx, json.RawMessage(msg))
 		})

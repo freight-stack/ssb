@@ -123,7 +123,7 @@ func legacyStreamSink(stream luigi.Sink) luigi.Sink {
 		}
 		msg, ok := v.(*transform.KeyValue)
 		if !ok {
-			return errors.Errorf("b4pour: expected []byte - got %T", v)
+			return errors.Errorf("legacySink: expected %T - got %T", msg, v)
 		}
 		return stream.Pour(ctx, json.RawMessage(msg.Data))
 	})

@@ -14,7 +14,7 @@ type Value struct {
 	Sequence  margaret.BaseSeq `json:"sequence"`
 	Timestamp float64          `json:"timestamp"`
 	Hash      string           `json:"hash"`
-	Content   interface{}      `json:"content"`
+	Content   json.RawMessage  `json:"content"`
 	Signature string           `json:"signature"`
 }
 
