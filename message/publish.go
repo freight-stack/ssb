@@ -107,12 +107,12 @@ func (pl *publishLog) Append(val interface{}) (margaret.Seq, error) {
 		return nil, errors.Wrap(err, "failed to create next msg")
 	}
 
-	_, err = pl.rootLog.Append(nextMsg)
+	rlSeq, err := pl.rootLog.Append(nextMsg)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to append new msg")
 	}
 
-	return margaret.BaseSeq(nextMsg.Seq() - 1), nil
+	return rlSeq, nil
 }
 
 // OpenPublishLog needs the base datastore (root or receive log - offset2)
