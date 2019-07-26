@@ -179,3 +179,7 @@ Type is already ambigous because of application content.type like about and cont
 
 TODO: how sending the signed bytes instead of remarshaling makes it extensible.
 
+## cbor
+
+but using arrays, maps are exsessive for the well defined structure
+

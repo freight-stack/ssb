@@ -60,7 +60,7 @@ func TestEncoder(t *testing.T) {
 		got, err := tr.Marshal()
 		r.NoError(err, "msg[%02d]Marshal failed", msgidx)
 
-		a.Len(got, len(want[msgidx]), "msg[%02d] wrong msg length", msgidx)
+		a.Equal(len(want[msgidx]), len(got), "msg[%02d] wrong msg length", msgidx)
 		a.Equal(want[msgidx], got, "msg[%02d] compare failed", msgidx)
 
 		var tr2 Transfer

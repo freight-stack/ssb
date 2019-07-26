@@ -18,7 +18,7 @@ import (
 // CypherLinkCBORTag is the CBOR tag for a (ssb) cypherlink
 // from https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml#tags
 // 888 is WIP and currently unused
-const CypherLinkCBORTag = 888
+const CypherLinkCBORTag = 1050
 
 // GetCBORHandle returns a codec.CborHandle with an extension
 // yet to be registerd for SSB References as CBOR tag XXX
@@ -27,6 +27,8 @@ func GetCBORHandle() (h *codec.CborHandle) {
 	h.IndefiniteLength = false // no streaming
 	h.Canonical = true         // sort map keys
 	h.SignedInteger = true
+
+	h.StructToArray = true
 
 	var cExt BinRefExt
 	h.SetInterfaceExt(reflect.TypeOf(&BinaryRef{}), CypherLinkCBORTag, cExt)
