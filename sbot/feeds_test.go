@@ -98,11 +98,10 @@ func TestFeedsOneByOne(t *testing.T) {
 		r.NoError(err)
 		time.Sleep(75 * time.Millisecond)
 
-		seq, err := ali.PublishLog.Append(map[string]interface{}{
+		_, err := ali.PublishLog.Append(map[string]interface{}{
 			"test": i,
 		})
 		r.NoError(err)
-		r.Equal(margaret.BaseSeq(i+1), seq)
 
 		seqv, err := alisLog.Seq().Value()
 		r.NoError(err)
@@ -117,7 +116,6 @@ func TestFeedsOneByOne(t *testing.T) {
 
 	r.NoError(<-mergeErrorChans(aliErrc, bobErrc))
 	cancel()
-	time.Sleep(10 * time.Second)
 }
 
 // utils
