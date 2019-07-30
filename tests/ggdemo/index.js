@@ -1,6 +1,6 @@
 'use strict'
-var pull         = require('pull-stream')
-var grove = require('/home/cryptix/js-gabbygrove')
+var pull  = require('pull-stream')
+var grove = require('gabbygrove')
 
 exports.name = 'gabbygrove'
 exports.version = '1.0.0'

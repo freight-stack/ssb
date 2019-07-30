@@ -8,6 +8,7 @@
   },
   "author": "cryptix & keks",
   "dependencies": {
+    "gabbygrove": "github:cryptix/js-gabbygrove",
     "has-network": "0.0.1",
     "osenv": "^0.1.5",
     "run-parallel": "^1.1.9",
