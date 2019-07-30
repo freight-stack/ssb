@@ -3,9 +3,7 @@ package multimsg
 import (
 	"bytes"
 	"encoding/gob"
-	"encoding/json"
-	fmt "fmt"
-	"time"
+	"log"
 
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
@@ -28,36 +26,46 @@ const (
 // MultiMessage attempts to support multiple message formats in the same storage layer
 // currently supports Proto and legacy
 type MultiMessage struct {
-	tipe   MessageType
-	key    *ssb.MessageRef
-	proto  *protochain.Transfer
-	legacy *legacy.StoredMessage
-	gabby  *gabbygrove.Transfer
+	ssb.Message
+	tipe MessageType
+	key  *ssb.MessageRef
 }
 
 func (mm MultiMessage) MarshalBinary() ([]byte, error) {
 	switch mm.tipe {
 	case Legacy:
+		legacy, ok := mm.AsLegacy()
+		if !ok {
+			return nil, errors.Errorf("not a legacy message: %T", mm.Message)
+		}
 		var buf bytes.Buffer
 		buf.Write([]byte{byte(Legacy)})
 
 		var mh codec.MsgpackHandle
 		enc := codec.NewEncoder(&buf, &mh)
-		err := enc.Encode(mm.legacy)
+		err := enc.Encode(legacy)
 		if err != nil {
 			return nil, errors.Wrap(err, "multiMessage: legacy encoding failed")
 		}
 		return buf.Bytes(), nil
 	case Proto:
-		trBytes, err := mm.proto.Marshal()
+		proto, ok := mm.AsProto()
+		if !ok {
+			return nil, errors.Errorf("multiMessage: wrong type of message: %T", mm.Message)
+		}
+		trBytes, err := proto.Marshal()
 		if err != nil {
 			return nil, errors.Wrap(err, "multiMessage: proto encoding failed")
 		}
 		return append([]byte{byte(Proto)}, trBytes...), nil
 	case Gabby:
+		gabby, ok := mm.AsGabby()
+		if !ok {
+			return nil, errors.Errorf("multiMessage: wrong type of message: %T", mm.Message)
+		}
 		var buf bytes.Buffer
 		buf.Write([]byte{byte(Gabby)})
-		err := gob.NewEncoder(&buf).Encode(mm.gabby)
+		err := gob.NewEncoder(&buf).Encode(gabby)
 		return buf.Bytes(), errors.Wrap(err, "multiMessage: gabby encoding failed")
 	}
 	return nil, errors.Errorf("multiMessage: unsupported message type: %x", mm.tipe)
@@ -78,7 +86,7 @@ func (mm *MultiMessage) UnmarshalBinary(data []byte) error {
 		if err != nil {
 			return errors.Wrap(err, "multiMessage: legacy decoding failed")
 		}
-		mm.legacy = &msg
+		mm.Message = &msg
 		mm.key = msg.Key_
 	case Proto:
 		var tr protochain.Transfer
@@ -86,7 +94,7 @@ func (mm *MultiMessage) UnmarshalBinary(data []byte) error {
 		if err != nil {
 			return errors.Wrap(err, "multiMessage: proto decoding failed")
 		}
-		mm.proto = &tr
+		mm.Message = &tr
 		mm.key = tr.Key()
 	case Gabby:
 		rd := bytes.NewReader(data[1:])
@@ -95,7 +103,7 @@ func (mm *MultiMessage) UnmarshalBinary(data []byte) error {
 		if err != nil {
 			return errors.Wrap(err, "multiMessage: gabby decoding failed")
 		}
-		mm.gabby = &gb
+		mm.Message = &gb
 		mm.key = gb.Key()
 	default:
 		return errors.Errorf("multiMessage: unsupported message type: %x", mm.tipe)
@@ -103,122 +111,49 @@ func (mm *MultiMessage) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// TODO: replace with AsLegacy() and AsProto()
 func (mm MultiMessage) AsLegacy() (*legacy.StoredMessage, bool) {
 	if mm.tipe != Legacy {
 		return nil, false
 	}
-	return mm.legacy, true
+	legacy, ok := mm.Message.(*legacy.StoredMessage)
+	if !ok {
+		err := errors.Errorf("multiMessage: wrong type of message: %T", mm.Message)
+		log.Println("AsLegacy", err)
+		return nil, false
+	}
+	return legacy, true
 }
 
 func (mm MultiMessage) AsProto() (*protochain.Transfer, bool) {
 	if mm.tipe != Proto {
 		return nil, false
 	}
-	return mm.proto, true
+	proto, ok := mm.Message.(*protochain.Transfer)
+	if !ok {
+		err := errors.Errorf("multiMessage: wrong type of message: %T", mm.Message)
+		log.Println("AsProto", err)
+		return nil, false
+	}
+	return proto, true
 }
 
 func (mm MultiMessage) AsGabby() (*gabbygrove.Transfer, bool) {
 	if mm.tipe != Gabby {
 		return nil, false
 	}
-	return mm.gabby, true
-}
-
-var _ ssb.Message = (*MultiMessage)(nil)
-
-func (mm MultiMessage) Author() *ssb.FeedRef {
-	switch mm.tipe {
-	case Legacy:
-		return mm.legacy.Author()
-	case Proto:
-		return mm.proto.Author()
-	case Gabby:
-		return mm.gabby.Author()
+	gabby, ok := mm.Message.(*gabbygrove.Transfer)
+	if !ok {
+		err := errors.Errorf("multiMessage: wrong type of message: %T", mm.Message)
+		log.Println("AsGabby", err)
+		return nil, false
 	}
-	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
-}
-
-func (mm MultiMessage) Previous() *ssb.MessageRef {
-	switch mm.tipe {
-	case Legacy:
-		return mm.legacy.Previous()
-	case Proto:
-		return mm.proto.Previous()
-	case Gabby:
-		return mm.gabby.Previous()
-	}
-	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
-}
-
-func (mm MultiMessage) Timestamp() time.Time {
-	switch mm.tipe {
-	case Legacy:
-		return mm.legacy.Timestamp()
-	case Proto:
-		return mm.proto.Timestamp()
-	case Gabby:
-		return mm.gabby.Timestamp()
-	}
-	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
-}
-
-func (mm MultiMessage) ContentBytes() []byte {
-	switch mm.tipe {
-	case Legacy:
-		return mm.legacy.ContentBytes()
-	case Proto:
-		return mm.proto.ContentBytes()
-	case Gabby:
-		return mm.gabby.ContentBytes()
-	}
-	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
-}
-
-func (mm MultiMessage) Key() *ssb.MessageRef {
-	return mm.key
-}
-
-func (mm MultiMessage) Seq() int64 {
-	switch mm.tipe {
-	case Legacy:
-		return mm.legacy.Seq()
-	case Proto:
-		return mm.proto.Seq()
-	case Gabby:
-		return mm.gabby.Seq()
-	}
-	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
-}
-
-func (mm MultiMessage) ValueContent() *ssb.Value {
-	switch mm.tipe {
-	case Legacy:
-		return mm.legacy.ValueContent()
-	case Proto:
-		return mm.proto.ValueContent()
-	case Gabby:
-		return mm.gabby.ValueContent()
-	}
-	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
-}
-
-func (mm MultiMessage) ValueContentJSON() json.RawMessage {
-	switch mm.tipe {
-	case Legacy:
-		return mm.legacy.ValueContentJSON()
-	case Proto:
-		return mm.proto.ValueContentJSON()
-	case Gabby:
-		return mm.gabby.ValueContentJSON()
-	}
-	panic(fmt.Sprintf("multiMessage: unsupported message type: %x", mm.tipe))
+	return gabby, true
 }
 
 func NewMultiMessageFromLegacy(msg *legacy.StoredMessage) *MultiMessage {
 	var mm MultiMessage
 	mm.tipe = Legacy
 	mm.key = msg.Key_
-	mm.legacy = msg
+	mm.Message = msg
 	return &mm
 }

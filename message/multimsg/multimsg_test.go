@@ -30,7 +30,7 @@ func TestMultiMsgLegacy(t *testing.T) {
 
 	var mm MultiMessage
 	mm.tipe = Legacy
-	mm.legacy = &lm
+	mm.Message = &lm
 
 	b, err := mm.MarshalBinary()
 	r.NoError(err)
@@ -39,11 +39,12 @@ func TestMultiMsgLegacy(t *testing.T) {
 	var mm2 MultiMessage
 	err = mm2.UnmarshalBinary(b)
 	r.NoError(err)
-	r.Nil(mm2.proto)
-	r.NotNil(mm2.legacy)
+	r.NotNil(mm2.Message)
 	r.Equal(Legacy, mm2.tipe)
-	r.Equal(testContent, mm2.legacy.Raw_)
-	r.Equal(margaret.BaseSeq(123).Seq(), mm2.legacy.Seq())
+	legacy, ok := mm2.AsLegacy()
+	r.True(ok)
+	r.Equal(testContent, legacy.Raw_)
+	r.Equal(margaret.BaseSeq(123).Seq(), legacy.Seq())
 }
 
 func TestMultiMsgProto(t *testing.T) {
@@ -87,7 +88,7 @@ func TestMultiMsgProto(t *testing.T) {
 
 	var mm MultiMessage
 	mm.tipe = Proto
-	mm.proto = tr
+	mm.Message = tr
 
 	b, err := mm.MarshalBinary()
 	r.NoError(err)
@@ -96,12 +97,12 @@ func TestMultiMsgProto(t *testing.T) {
 	var mm2 MultiMessage
 	err = mm2.UnmarshalBinary(b)
 	r.NoError(err)
-	r.NotNil(mm2.proto)
-	r.Nil(mm2.legacy)
+	proto, ok := mm2.AsProto()
+	r.True(ok)
 	r.Equal(Proto, mm2.tipe)
-	r.Equal(testContent, mm2.proto.Content)
-	r.Equal([]byte("none"), mm2.proto.Signature)
-	evt2, err := mm2.proto.UnmarshaledEvent()
+	r.Equal(testContent, proto.Content)
+	r.Equal([]byte("none"), proto.Signature)
+	evt2, err := proto.UnmarshaledEvent()
 	r.NoError(err)
 	r.Equal(uint64(123), evt2.Sequence)
 }
@@ -144,7 +145,7 @@ func TestMultiMsgGabby(t *testing.T) {
 
 	var mm MultiMessage
 	mm.tipe = Gabby
-	mm.gabby = tr
+	mm.Message = tr
 
 	b, err := mm.MarshalBinary()
 	r.NoError(err)
@@ -153,13 +154,13 @@ func TestMultiMsgGabby(t *testing.T) {
 	var mm2 MultiMessage
 	err = mm2.UnmarshalBinary(b)
 	r.NoError(err)
-	r.Nil(mm2.proto)
-	r.Nil(mm2.legacy)
-	r.NotNil(mm2.gabby)
-	r.Equal(Gabby, mm2.tipe)
-	r.Equal(testContent, mm2.gabby.Content)
-	r.Equal([]byte("none"), mm2.gabby.Signature)
-	evt2, err := mm2.gabby.UnmarshaledEvent()
+	r.Equal(Gabby, mm.tipe)
+	gabby, ok := mm2.AsGabby()
+	r.True(ok)
+	r.NotNil(gabby)
+	r.Equal(testContent, gabby.Content)
+	r.Equal([]byte("none"), gabby.Signature)
+	evt2, err := gabby.UnmarshaledEvent()
 	r.NoError(err)
 	r.Equal(uint64(123), evt2.Sequence)
 }

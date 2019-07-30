@@ -35,15 +35,15 @@ func (wl WrappedLog) Append(val interface{}) (margaret.Seq, error) {
 	switch tv := val.(type) {
 	case *legacy.StoredMessage:
 		mm.tipe = Legacy
-		mm.legacy = tv
+		mm.Message = tv
 
 	case *protochain.Transfer:
 		mm.tipe = Proto
-		mm.proto = tv
+		mm.Message = tv
 
 	case *gabbygrove.Transfer:
 		mm.tipe = Gabby
-		mm.gabby = tv
+		mm.Message = tv
 	default:
 		return margaret.SeqEmpty, errors.Errorf("wrappedLog: unsupported message type: %T", val)
 	}
