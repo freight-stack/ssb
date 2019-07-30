@@ -14,10 +14,11 @@ import (
 )
 
 type Event struct {
-	Previous *BinaryRef // %... Metadata hashsha
-	Author   *BinaryRef
-	Sequence uint64
-	Content  Content
+	Previous  *BinaryRef // %... Metadata hashsha
+	Author    *BinaryRef
+	Sequence  uint64
+	Timestamp uint64
+	Content   Content
 }
 
 func (evt Event) MarshalCBOR() ([]byte, error) {
@@ -119,7 +120,7 @@ func (tr *Transfer) Seq() int64 {
 	return int64(evt.Sequence)
 }
 
-func (tr Transfer) Author() *ssb.FeedRef {
+func (tr *Transfer) Author() *ssb.FeedRef {
 	evt, err := tr.getEvent()
 	if err != nil {
 		panic(err)
@@ -131,7 +132,7 @@ func (tr Transfer) Author() *ssb.FeedRef {
 	return aref.(*ssb.FeedRef)
 }
 
-func (tr Transfer) Previous() *ssb.MessageRef {
+func (tr *Transfer) Previous() *ssb.MessageRef {
 	evt, err := tr.getEvent()
 	if err != nil {
 		panic(err)
@@ -146,15 +147,19 @@ func (tr Transfer) Previous() *ssb.MessageRef {
 	return mref.(*ssb.MessageRef)
 }
 
-func (tr Transfer) Timestamp() time.Time { // no timestamp on the event level
-	return time.Unix(0, 0)
+func (tr *Transfer) Timestamp() time.Time {
+	evt, err := tr.getEvent()
+	if err != nil {
+		panic(err)
+	}
+	return time.Unix(int64(evt.Timestamp), 0)
 }
 
-func (tr Transfer) ContentBytes() []byte {
+func (tr *Transfer) ContentBytes() []byte {
 	return tr.Content
 }
 
-func (tr Transfer) ValueContent() *ssb.Value {
+func (tr *Transfer) ValueContent() *ssb.Value {
 	evt, err := tr.getEvent()
 	if err != nil {
 		panic(err)
@@ -179,7 +184,7 @@ func (tr Transfer) ValueContent() *ssb.Value {
 	return &msg
 }
 
-func (tr Transfer) ValueContentJSON() json.RawMessage {
+func (tr *Transfer) ValueContentJSON() json.RawMessage {
 	jsonB, err := json.Marshal(tr.ValueContent())
 	if err != nil {
 		panic(err.Error())

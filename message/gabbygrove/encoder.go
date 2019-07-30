@@ -7,6 +7,7 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
@@ -57,6 +58,8 @@ func (e *Encoder) WithHMAC(in []byte) error {
 	return nil
 }
 
+var now = time.Now
+
 func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Transfer, *ssb.MessageRef, error) {
 	contentHash := sha256.New()
 	contentBuf := &bytes.Buffer{}
@@ -83,6 +86,7 @@ func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 		evt.Previous = prev
 	}
 	evt.Sequence = sequence
+	evt.Timestamp = uint64(now().Unix())
 
 	var err error
 	evt.Author, err = fromRef(e.kp.Id)

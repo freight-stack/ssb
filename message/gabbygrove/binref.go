@@ -49,6 +49,18 @@ func (ref BinaryRef) valid() (RefType, error) {
 	return t, nil
 }
 
+func (ref BinaryRef) Ref() string {
+	t, err := ref.valid()
+	if err != nil {
+		panic(err)
+	}
+	r, err := ref.GetRef(t)
+	if err != nil {
+		panic(err)
+	}
+	return r.Ref()
+}
+
 func (ref BinaryRef) MarshalBinary() ([]byte, error) {
 	t, err := ref.valid()
 	if err != nil {
