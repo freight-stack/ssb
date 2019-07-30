@@ -14,6 +14,7 @@ import (
 	"go.cryptoscope.co/ssb/sbot"
 )
 
+// defunct, thre is no JS code yet to produce messages from the stack correctly, just custom RPC calls
 func XTestContentFeedFromJS(t *testing.T) {
 	a := assert.New(t)
 	r := require.New(t)
@@ -23,7 +24,7 @@ func XTestContentFeedFromJS(t *testing.T) {
 
 	kp, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	kp.Id.Algo = ssb.RefAlgoProto
+	kp.Id.Algo = ssb.RefAlgoFeedProto
 
 	ts.startGoBot(sbot.WithKeyPair(kp))
 	bob := ts.gobot
@@ -98,31 +99,30 @@ func XTestContentFeedFromJS(t *testing.T) {
 	}
 }
 
-func TestContentFeedFromGo(t *testing.T) {
+func TestProtoChainFeedFromGo(t *testing.T) {
 	r := require.New(t)
 
-	ts := newRandomSession(t)
-	// ts := newSession(t, nil, nil)
+	ts := newSession(t, nil, nil)
+	// hmac not supported on the js side
+	// ts := newRandomSession(t)
 
 	// make offchain ID
 	kp, err := ssb.NewKeyPair(nil)
 	r.NoError(err)
-	kp.Id.Algo = ssb.RefAlgoProto
+	kp.Id.Algo = ssb.RefAlgoFeedProto
 
 	ts.startGoBot(sbot.WithKeyPair(kp))
 	s := ts.gobot
 
-	r.Contains(s.KeyPair.Id.Ref(), ".proto")
-
 	before := `fromKey = testBob
 	sbot.on('rpc:connect', (rpc) => {
 		pull(
-			rpc.protochain.binaryStream({id: fromKey}),
+			rpc.createHistoryStream({id: fromKey}),
 			pull.collect((err, msgs) => {
 				t.error(err)
 				t.equal(msgs.length,3)
 				console.warn('Messages: '+msgs.length)
-				console.warn(JSON.stringify(msgs))
+				// console.warn(JSON.stringify(msgs))
 				sbot.protochain.verify(msgs[0], (err, evt) => {
 					t.error(err, 'verified msg[0]')
 					t.ok(evt)
@@ -130,34 +130,10 @@ func TestContentFeedFromGo(t *testing.T) {
 				})
 			})
 		)
-			
-		// rpc.on('closed', () => {
-		// 	t.comment('now should have feed:' + fromKey)
-		// 	pull(
-		// 		sbot.contentStream.getContentStream({id: fromKey}),
-		// 		pull.collect((err, msgs) => {
-		// 			t.error(err)
-		// 			console.warn('BHC: '+msgs.length)
-		// 			console.warn(JSON.stringify(msgs))
-		// 			t.end()
-		// 		})
-		// 	)
-		// })
-		// setTimeout(() => {
-		// 	t.comment('now should have feed:' + fromKey)
-		// 	pull(
-		// 		sbot.contentStream.getContentStream({id: fromKey}),
-		// 		pull.collect((err, msgs) => {
-		// 			t.error(err)
-		// 			console.warn('Messages: '+msgs.length)
-		// 			console.warn(JSON.stringify(msgs))
-		// 			// t.end()
-		// 		})
-		// 	)
-		// },1000)
 	})
 	
 	setTimeout(run, 3000) // give go bot a moment to publish
+	// following is blocked on proper feed format support with new suffixes
 	// sbot.publish({type: 'contact', contact: fromKey, following: true}, function(err, msg) {
 	// 	t.error(err, 'follow:' + fromKey)
 
