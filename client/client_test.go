@@ -160,10 +160,10 @@ func TestPublish(t *testing.T) {
 
 	streamV, err := src.Next(context.TODO())
 	r.NoError(err)
-	streamMsg, ok := streamV.(legacy.DeserializedMessage)
-	r.True(ok)
-	a.Equal(newMsg.Author().Ref(), streamMsg.Author.Ref())
-	a.Equal(newMsg.Seq(), streamMsg.Sequence)
+	streamMsg, ok := streamV.(legacy.KeyValueAsMap)
+	r.True(ok, "acutal type: %T", streamV)
+	a.Equal(newMsg.Author().Ref(), streamMsg.Value.Author.Ref())
+	a.EqualValues(newMsg.Seq(), streamMsg.Value.Sequence)
 
 	v, err := src.Next(context.TODO())
 	a.Nil(v)
@@ -233,13 +233,13 @@ func TestTangles(t *testing.T) {
 	streamMsg, ok := streamV.(legacy.KeyValueAsMap)
 	r.True(ok)
 
-	a.Equal(2, streamMsg.Value.Sequence)
+	a.EqualValues(2, streamMsg.Value.Sequence)
 
 	streamV, err = src.Next(context.TODO())
 	r.NoError(err)
 	streamMsg, ok = streamV.(legacy.KeyValueAsMap)
 	r.True(ok)
-	a.Equal(3, streamMsg.Value.Sequence)
+	a.EqualValues(3, streamMsg.Value.Sequence)
 
 	v, err := src.Next(context.TODO())
 	a.Nil(v)
