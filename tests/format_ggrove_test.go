@@ -49,7 +49,7 @@ func TestGabbyFeedFromGo(t *testing.T) {
 		)
 	})
 	
-	setTimeout(run, 2000) // give go bot a moment to publish
+	setTimeout(run, 1000) // give go bot a moment to publish
 	// following is blocked on proper feed format support with new suffixes
 `
 
@@ -77,7 +77,8 @@ func TestGabbyFeedFromGo(t *testing.T) {
 		r.NotNil(newSeq)
 	}
 
-	time.Sleep(4 * time.Second)
+	time.Sleep(2 * time.Second)
+
 	aliceEdp, ok := s.Network.GetEndpointFor(alice)
 	r.True(ok, "no endpoint for alice")
 
@@ -94,8 +95,6 @@ func TestGabbyFeedFromGo(t *testing.T) {
 	r.NoError(err)
 
 	// test is currently borked because we get fake messages back
-
-	<-ts.doneJS
 
 	demoLog, err := s.UserFeeds.Get(aliceAsGabby.StoredAddr())
 	r.NoError(err)
@@ -125,11 +124,16 @@ func TestGabbyFeedFromGo(t *testing.T) {
 		switch demoFeedSeq {
 		case 1:
 			r.Equal(testMsg.Message, "hello world")
+			r.Equal(testMsg.Level, 0)
 		case 2:
 			r.Equal(testMsg.Message, "exciting")
+			r.Equal(testMsg.Level, 9000)
 		case 3:
 			r.Equal(testMsg.Message, "last")
+			r.Equal(testMsg.Level, 9001)
 		}
+
+		t.Log("age:", time.Since(storedMsg.Timestamp()))
 	}
 
 	ts.wait()

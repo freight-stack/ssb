@@ -99,6 +99,8 @@ func TestEncoder(t *testing.T) {
 
 		a.NotNil(evt.Author, "evt[%02d] has author", msgidx)
 		a.Equal(seq, evt.Sequence)
+
+		r.NotEqual(0, evt.Timestamp)
 		a.EqualValues(0x5d3f8880+msgidx, evt.Timestamp)
 		if msgidx == 0 {
 			a.Nil(evt.Previous, "evt[%02d] has no previous", msgidx)

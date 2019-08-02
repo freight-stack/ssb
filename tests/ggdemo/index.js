@@ -19,7 +19,7 @@ exports.init = function (sbot, config) {
 
         binaryStream: function(args) {
             console.warn("binStream called, crafting some messages")
-            console.warn(args)
+            // console.warn(args)
             // console.warn(arguments)
 
             let evt1 = grove.makeEventSync(config.keys, 1, null, {'message':'hello world', 'level':0})
