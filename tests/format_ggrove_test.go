@@ -1,11 +1,18 @@
 package tests
 
 import (
+	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.cryptoscope.co/luigi"
+	"go.cryptoscope.co/margaret"
+	"go.cryptoscope.co/muxrpc"
+	"go.cryptoscope.co/muxrpc/codec"
 	"go.cryptoscope.co/ssb"
+	"go.cryptoscope.co/ssb/message"
 	"go.cryptoscope.co/ssb/sbot"
 )
 
@@ -35,13 +42,14 @@ func TestGabbyFeedFromGo(t *testing.T) {
 				sbot.gabbygrove.verify(msgs[0], (err, evt) => {
 					t.error(err, 'verified msg[0]')
 					t.ok(evt)
-					t.end()
+					t.comment('exiting in 5 secs')
+					setTimeout(exit, 5000)
 				})
 			})
 		)
 	})
 	
-	setTimeout(run, 3000) // give go bot a moment to publish
+	setTimeout(run, 2000) // give go bot a moment to publish
 	// following is blocked on proper feed format support with new suffixes
 `
 
@@ -69,25 +77,60 @@ func TestGabbyFeedFromGo(t *testing.T) {
 		r.NotNil(newSeq)
 	}
 
+	time.Sleep(4 * time.Second)
+	aliceEdp, ok := s.Network.GetEndpointFor(alice)
+	r.True(ok, "no endpoint for alice")
+
+	ctx := context.TODO()
+	src, err := aliceEdp.Source(ctx, codec.Body{}, muxrpc.Method{"gabbygrove", "binaryStream"})
+	r.NoError(err)
+
+	// hacky, pretend alice is a gabby formated feed (as if it would respond to createHistoryStream)
+	aliceAsGabby := *alice
+	aliceAsGabby.Algo = ssb.RefAlgoFeedGabby
+	snk := message.NewVerifySink(&aliceAsGabby, margaret.BaseSeq(1), nil, s.RootLog, nil)
+
+	err = luigi.Pump(ctx, snk, src)
+	r.NoError(err)
+
 	// test is currently borked because we get fake messages back
 
 	<-ts.doneJS
 
-	// aliceLog, err := s.UserFeeds.Get(alice.StoredAddr())
-	// r.NoError(err)
+	demoLog, err := s.UserFeeds.Get(aliceAsGabby.StoredAddr())
+	r.NoError(err)
 
-	// aliceSeq, err := aliceLog.Seq().Value()
-	// r.NoError(err)
-	// r.Equal(2, aliceSeq.(margaret.Seq).Seq())
+	demoLogSeq, err := demoLog.Seq().Value()
+	r.NoError(err)
+	r.EqualValues(2, demoLogSeq.(margaret.Seq).Seq())
 
-	// seqMsg, err := aliceLog.Get(margaret.BaseSeq(2))
-	// r.NoError(err)
-	// msg, err := s.RootLog.Get(seqMsg.(margaret.BaseSeq))
-	// r.NoError(err)
-	// storedMsg, ok := msg.(ssb.Message)
-	// r.True(ok, "wrong type of message: %T", msg)
-	// r.Equal(storedMsg.Seq(), margaret.BaseSeq(3).Seq())
-	time.Sleep(1 * time.Second)
+	for demoFeedSeq := margaret.BaseSeq(1); demoFeedSeq < 3; demoFeedSeq++ {
+		seqMsg, err := demoLog.Get(demoFeedSeq - 1)
+		r.NoError(err)
+		msg, err := s.RootLog.Get(seqMsg.(margaret.BaseSeq))
+		r.NoError(err)
+		storedMsg, ok := msg.(ssb.Message)
+		r.True(ok, "wrong type of message: %T", msg)
+
+		var testMsg struct {
+			Message string
+			Level   int
+		}
+		err = json.Unmarshal(storedMsg.ContentBytes(), &testMsg)
+		r.NoError(err)
+
+		r.Equal(aliceAsGabby.Ref(), storedMsg.Author().Ref())
+
+		r.Equal(demoFeedSeq.Seq(), storedMsg.Seq())
+		switch demoFeedSeq {
+		case 1:
+			r.Equal(testMsg.Message, "hello world")
+		case 2:
+			r.Equal(testMsg.Message, "exciting")
+		case 3:
+			r.Equal(testMsg.Message, "last")
+		}
+	}
 
 	ts.wait()
 }
