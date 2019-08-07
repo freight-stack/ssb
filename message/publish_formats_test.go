@@ -38,12 +38,11 @@ func TestFormatsSimple(t *testing.T) {
 
 	type testCase struct {
 		ff string
-		// pubfn func(margaret.Log, multilog.MultiLog, *ssb.KeyPair) (ssb.Publisher, error)
 	}
 	var testCases = []testCase{
-		{ssb.RefAlgoFeedSSB1},  // crappy
-		{ssb.RefAlgoFeedProto}, //
-		{ssb.RefAlgoFeedGabby}, //
+		{ssb.RefAlgoFeedSSB1},
+		{ssb.RefAlgoFeedGabby},
+		{ssb.RefAlgoFeedProto},
 	}
 
 	staticRand := rand.New(rand.NewSource(42))
