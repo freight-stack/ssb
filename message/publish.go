@@ -9,11 +9,11 @@ import (
 	"go.cryptoscope.co/luigi"
 	"go.cryptoscope.co/margaret"
 	"go.cryptoscope.co/margaret/multilog"
+	"go.mindeco.de/ssb-gabbygrove"
+	"go.mindeco.de/ssb-protochain"
 
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message/gabbygrove"
 	"go.cryptoscope.co/ssb/message/legacy"
-	"go.cryptoscope.co/ssb/message/protochain"
 )
 
 type publishLog struct {
@@ -256,7 +256,6 @@ func (pc protochainCreate) Create(val interface{}, prev *ssb.MessageRef, seq mar
 			return nil, err
 		}
 	}
-	// +2 because we want the first message to be 1
 	nextSeq := uint64(seq.Seq())
 	tr, _, err := pc.enc.Encode(nextSeq, br, val)
 	if err != nil {
@@ -280,7 +279,6 @@ func (pc gabbyCreate) Create(val interface{}, prev *ssb.MessageRef, seq margaret
 			return nil, err
 		}
 	}
-	// +2 because we want the first message to be 1
 	nextSeq := uint64(seq.Seq())
 	tr, _, err := pc.enc.Encode(nextSeq, br, val)
 	if err != nil {

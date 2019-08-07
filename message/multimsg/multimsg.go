@@ -7,11 +7,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
+	"go.mindeco.de/ssb-gabbygrove"
+	"go.mindeco.de/ssb-protochain"
 
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message/gabbygrove"
 	"go.cryptoscope.co/ssb/message/legacy"
-	"go.cryptoscope.co/ssb/message/protochain"
 )
 
 type MessageType byte

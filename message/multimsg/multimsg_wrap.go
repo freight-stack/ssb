@@ -3,13 +3,13 @@ package multimsg
 import (
 	"io"
 
-	"go.cryptoscope.co/ssb"
-
 	"github.com/pkg/errors"
 	"go.cryptoscope.co/margaret"
-	"go.cryptoscope.co/ssb/message/gabbygrove"
+	"go.mindeco.de/ssb-gabbygrove"
+	"go.mindeco.de/ssb-protochain"
+
+	"go.cryptoscope.co/ssb"
 	"go.cryptoscope.co/ssb/message/legacy"
-	"go.cryptoscope.co/ssb/message/protochain"
 )
 
 func NewWrappedLog(in margaret.Log) *WrappedLog {

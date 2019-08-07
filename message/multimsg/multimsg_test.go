@@ -8,10 +8,11 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/require"
 	"go.cryptoscope.co/margaret"
+	"go.mindeco.de/ssb-gabbygrove"
+	"go.mindeco.de/ssb-protochain"
+
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message/gabbygrove"
 	"go.cryptoscope.co/ssb/message/legacy"
-	"go.cryptoscope.co/ssb/message/protochain"
 )
 
 func TestMultiMsgLegacy(t *testing.T) {

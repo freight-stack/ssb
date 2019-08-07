@@ -9,10 +9,11 @@ import (
 	"github.com/pkg/errors"
 	"go.cryptoscope.co/luigi"
 	"go.cryptoscope.co/margaret"
+	"go.mindeco.de/ssb-gabbygrove"
+	"go.mindeco.de/ssb-protochain"
+
 	"go.cryptoscope.co/ssb"
-	"go.cryptoscope.co/ssb/message/gabbygrove"
 	"go.cryptoscope.co/ssb/message/legacy"
-	"go.cryptoscope.co/ssb/message/protochain"
 )
 
 // NewVerifySink returns a sink that does message verification and appends corret messages to the passed log.
