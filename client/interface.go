@@ -14,10 +14,17 @@ import (
 type Interface interface {
 	muxrpc.Endpoint
 	io.Closer
+	Whoami() (*ssb.FeedRef, error)
+
 	// ssb.BlobStore
 	BlobsWant(ssb.BlobRef) error
+	BlobsGet(ref *ssb.BlobRef) (io.Reader, error)
 
-	Whoami() (*ssb.FeedRef, error)
+	// names / abouts
+
+	NamesGet() (*NamesGetResult, error)
+	NamesSignifier(ref ssb.FeedRef) (string, error)
+	NamesImageFor(fr ssb.FeedRef) (*ssb.BlobRef, error)
 
 	Publish(interface{}) (*ssb.MessageRef, error)
 
