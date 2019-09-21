@@ -3,7 +3,6 @@ module go.cryptoscope.co/ssb
 go 1.13
 
 require (
-	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
 	github.com/catherinejones/testdiff v0.0.0-20180525195050-ae148f75f077
 	github.com/cryptix/go v1.5.0
@@ -15,17 +14,19 @@ require (
 	github.com/keks/nocomment v0.0.0-20181007001506-30c6dcb4a472
 	github.com/kylelemons/godebug v1.1.0
 	github.com/libp2p/go-reuseport v0.0.1
+	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.2 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/sergi/go-diff v1.0.0 // indirect
+	github.com/shurcooL/go v0.0.0-20190704215121-7189cc372560 // indirect
 	github.com/shurcooL/go-goon v0.0.0-20170922171312-37c2f522c041
 	github.com/stretchr/testify v1.4.0
 	github.com/ugorji/go/codec v1.1.7
 	go.cryptoscope.co/librarian v0.1.4-0.20190912103814-57505baa5ec9
 	go.cryptoscope.co/luigi v0.3.4
-	go.cryptoscope.co/margaret v0.0.12-0.20190917101355-ff7df4587a29
-	go.cryptoscope.co/muxrpc v1.4.1-0.20190927125555-9b455d96d34d
+	go.cryptoscope.co/margaret v0.0.12-0.20190926093025-909ecdd38629
+	go.cryptoscope.co/muxrpc v1.4.1-0.20190919103040-8e8e851e763b
 	go.cryptoscope.co/netwrap v0.1.0
 	go.cryptoscope.co/secretstream v1.1.4-0.20190911135450-b2c157275a98
 	go.mindeco.de/ssb-gabbygrove v0.1.5

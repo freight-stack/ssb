@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,9 +19,10 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	"go.cryptoscope.co/muxrpc/debug"
 	"go.cryptoscope.co/netwrap"
+
 	"go.cryptoscope.co/ssb"
+	"go.cryptoscope.co/ssb/multilogs"
 	"go.cryptoscope.co/ssb/sbot"
 )
 
@@ -121,10 +121,13 @@ func (ts *testSession) startGoBot(sbotOpts ...sbot.Option) {
 		sbot.WithListenAddr("localhost:0"),
 		sbot.WithRepoPath(ts.repo),
 		sbot.WithContext(ctx),
-		sbot.WithPostSecureConnWrapper(func(conn net.Conn) (net.Conn, error) {
-			fr, err := ssb.GetFeedRefFromAddr(conn.RemoteAddr())
-			return debug.WrapConn(log.With(info, "remote", fr.Ref()[1:5]), conn), err
-		}),
+		sbot.LateOption(sbot.MountMultiLog("byTypes", multilogs.OpenMessageTypes)),
+
+		// TODO: the close handling on the debug wrapper is bugged, using it stalls the tests at the end
+		// sbot.WithPostSecureConnWrapper(func(conn net.Conn) (net.Conn, error) {
+		// 	fr, err := ssb.GetFeedRefFromAddr(conn.RemoteAddr())
+		// 	return debug.WrapConn(log.With(info, "remote", fr.Ref()[1:5]), conn), err
+		// }),
 	}, sbotOpts...)
 
 	if ts.keySHS != nil {
@@ -220,7 +223,7 @@ func (ts *testSession) wait() {
 		case <-ts.doneJS:
 
 		case <-ts.doneGo:
-			ts.gobot.FSCK()
+			ts.gobot.FSCK(nil)
 		case <-tick.C:
 			ts.t.Log("timeout")
 		}

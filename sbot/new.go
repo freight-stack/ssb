@@ -80,17 +80,6 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	// s.serveIndex(ctx, "abouts", serveAbouts)
 	// s.AboutStore = ab
 
-	/* new style graph builder
-	contactLog, err := mt.Get(librarian.Addr("contact"))
-	if err != nil {
-		return nil, errors.Wrap(err, "sbot: failed to open message contact sublog")
-	}
-	s.GraphBuilder, err = graph.NewLogBuilder(s.info, mutil.Indirect(s.RootLog, contactLog))
-	if err != nil {
-		return nil, errors.Wrap(err, "sbot: NewLogBuilder failed")
-	}
-	*/
-
 	uf, ok := s.mlogIndicies["userFeeds"]
 	if !ok {
 		log.Log("warning", "loading default idx", "idx", "userFeeds")
@@ -104,14 +93,6 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		}
 	}
 
-	// TODO: move to mounted indexes
-	gb, serveContacts, err := indexes.OpenContacts(kitlog.With(log, "module", "graph"), r)
-	if err != nil {
-		return nil, errors.Wrap(err, "sbot: OpenContacts failed")
-	}
-	s.serveIndex(ctx, "contacts", serveContacts)
-	s.GraphBuilder = gb
-
 	bs, err := repo.OpenBlobStore(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "sbot: failed to open blob store")
@@ -122,9 +103,6 @@ func initSbot(s *Sbot) (*Sbot, error) {
 	// wantsLog := kitlog.NewNopLogger()
 	wm := blobstore.NewWantManager(wantsLog, bs, s.eventCounter, s.systemGauge)
 	s.WantManager = wm
-
-	id := s.KeyPair.Id
-	auth := s.GraphBuilder.Authorizer(id, int(s.hopCount))
 
 	var pubopts = []message.PublishOption{
 		message.UseNowTimestamps(true),
@@ -144,9 +122,31 @@ func initSbot(s *Sbot) (*Sbot, error) {
 		}
 	}
 
+	// LogBuilder doesn't fully work yet
+	// if mt, ok := s.mlogIndicies["byTypes"]; ok {
+	// 	contactLog, err := mt.Get(librarian.Addr("contact"))
+	// 	if err != nil {
+	// 		return nil, errors.Wrap(err, "sbot: failed to open message contact sublog")
+	// 	}
+	// 	s.GraphBuilder, err = graph.NewLogBuilder(s.info, mutil.Indirect(s.RootLog, contactLog))
+	// 	if err != nil {
+	// 		return nil, errors.Wrap(err, "sbot: NewLogBuilder failed")
+	// 	}
+	// } else {
+	gb, serveContacts, err := indexes.OpenContacts(kitlog.With(log, "module", "graph"), r)
+	if err != nil {
+		return nil, errors.Wrap(err, "sbot: OpenContacts failed")
+	}
+	s.serveIndex(ctx, "contacts", serveContacts)
+	s.GraphBuilder = gb
+	// }
+
 	if s.disableNetwork {
 		return s, nil
 	}
+
+	id := s.KeyPair.Id
+	auth := s.GraphBuilder.Authorizer(id, int(s.hopCount))
 
 	mkHandler := func(conn net.Conn) (muxrpc.Handler, error) {
 		remote, err := ssb.GetFeedRefFromAddr(conn.RemoteAddr())
